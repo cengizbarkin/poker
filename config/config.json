@@ -1,0 +1,12 @@
+{
+  "test": {
+    "PORT": 3000,
+    "MONGODB_URI": "mongodb://localhost:27017/PokerTest",
+    "JWT_SECRET": "ebdhsyrutngbdhsgabjenfjdn3j4nj3!"
+  },
+  "development": {
+    "PORT": 3000,
+    "MONGODB_URI": "mongodb://localhost:27017/Poker",
+    "JWT_SECRET": "hfydysvsvaysdgasdaysdgysvady2vys!"
+  }
+}
