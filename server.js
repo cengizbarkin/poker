@@ -93,9 +93,9 @@ io.on('connection', (socket) => {
 });
 
 
-app.get('/first', (req, res)=> {
-  res.send('Welcome');
-});
+// app.get('/first', (req, res)=> {
+//   res.send('Welcome');
+// });
 
 
 server.listen(port, () => {
