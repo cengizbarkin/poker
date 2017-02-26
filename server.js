@@ -9,6 +9,7 @@ var deviceChecker = require('./utils/deviceChecker');
 var deviceRegister = require('./utils/deviceRegister');
 const port = process.env.PORT;
 const {Player} = require('./game/player');
+const {Table} = require('./game/table');
 const publicPath = path.join(__dirname, './public');
 let {mongoose} = require('./database/mongoose.js');
 
@@ -78,6 +79,14 @@ io.on('connection', (socket) => {
           }
         });
       }
+    });
+  });
+
+  socket.on('createTable', (tableProps) => {
+    let table = new Table({'name': tableProps.tableName, 'playerNumber': tableProps.playerNumber});
+    table.save().then((table) => {
+      console.log('Masa oluşturuldu');
+      console.log(table);
     });
   });
 

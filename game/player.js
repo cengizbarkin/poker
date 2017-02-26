@@ -19,7 +19,7 @@ let PlayerSchema = new mongoose.Schema({
     required: true,
     trim: true,
     minlength: 3,
-    unique: true
+    sparse: true
   },
   password: {
     type: String,
@@ -40,5 +40,6 @@ let PlayerSchema = new mongoose.Schema({
 let Player = mongoose.model('player', PlayerSchema);
 
 module.exports = {
-  Player
+  Player,
+  PlayerSchema
 }
