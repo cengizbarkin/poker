@@ -17,7 +17,12 @@ let TableSchema = new mongoose.Schema({
   }
 });
 
+
+//Masanın adı ve masadaki oyuncu sayısını gönderen fonksiyon yazılacak
+
+
 let Table = mongoose.model('table', TableSchema);
+
 
 module.exports = {
   Table
