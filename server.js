@@ -12,7 +12,7 @@ const {AddPlayerToTable} = require('./game/table');
 const publicPath = path.join(__dirname, './public');
 let {mongoose} = require('./database/mongoose');
 const TableController = require('./game/tableController');
-const PlayerContoller = require('./game/PlayerController');
+const PlayerContoller = require('./game/playerController');
 
 let app = express();
 let server = http.createServer(app);
