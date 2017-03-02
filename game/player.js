@@ -5,8 +5,7 @@ let DeviceSchema = new mongoose.Schema({
     type: String
   },
   id: {
-    type: String,
-    required: true
+    type: String
   },
   model: {
     type: String
@@ -16,14 +15,12 @@ let DeviceSchema = new mongoose.Schema({
 let PlayerSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
     trim: true,
     minlength: 3,
     sparse: true
   },
   password: {
-    type: String,
-    required: true
+    type: String
   },
   maxNumberOfDevices: {
     type: Number,
@@ -33,6 +30,9 @@ let PlayerSchema = new mongoose.Schema({
     type: [DeviceSchema]
   },
   playerId: {
+    type: String
+  },
+  tableId: {
     type: String
   }
 });

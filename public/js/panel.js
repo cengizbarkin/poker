@@ -1,6 +1,7 @@
 var socket = io();
 
 var tableButton = jQuery('#createTable');
+var logButton = jQuery('#logPlayers');
 
 
 tableButton.on('click', function () {
@@ -12,5 +13,9 @@ tableButton.on('click', function () {
     tableName: tableName,
     playerNumber: playerNumber
   });
+});
 
+
+logButton.on('click', function () {
+  socket.emit('logPlayers');
 });
