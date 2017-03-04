@@ -1,6 +1,5 @@
 const {Player} = require('./player');
-var deviceChecker = require('../utils/deviceChecker');
-var deviceRegister = require('../utils/deviceRegister');
+let deviceController = require('./deviceController');
 
 var shortid = require('shortid');
 
@@ -11,9 +10,10 @@ Login = (name, password, deviceId, deviceName, deviceModel, socket) => {
         password: password
       }).then((player) => {
         if(player) {
-          deviceChecker(player, deviceId)
+          deviceController.CheckDevice(player, deviceId)
+          //deviceChecker(player, deviceId)
           .then((device) => {
-            //console.log('Device bulundu');
+            console.log('Device bulundu');
             //Player'ı değişken içine atıp arrayin içine atıyouz
             thisPlayer = player;
             resolve(player);
@@ -26,7 +26,8 @@ Login = (name, password, deviceId, deviceName, deviceModel, socket) => {
               socket.emit('info', `This device is not synchronized with your account. Do you want to sync? Remaining device number: ${player.maxNumberOfDevices - player.device.length}`);
               socket.on('registerResult', (result) => {
                 if(result) {
-                  deviceRegister(player, deviceId, deviceName, deviceModel)
+                  deviceController.RegisterDevice(player, deviceId, deviceName, deviceModel)
+                  //deviceRegister(player, deviceId, deviceName, deviceModel)
                   .then((player) => {
                     //console.log('Yeni cihaz kaydedildi');
                     resolve(player);
@@ -59,8 +60,7 @@ Signup = (name, password, deviceId, deviceName, deviceModel, socket) => {
           if(data) {
             socket.emit('signupError', `This device was synced with another user account`);
           } else {
-            var playerId = shortid.generate();
-            let player = new Player({name, password, device: [{id: deviceId, name: deviceName, model: deviceModel}], playerId});
+            let player = new Player({name, password});
             player.save().then((player) => {
               resolve(player);
               socket.emit('signupSuccess', `Congratulations you have successfully registered. Remaining device number: ${player.maxNumberOfDevices - player.device.length}`);

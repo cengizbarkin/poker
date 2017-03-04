@@ -1,16 +1,4 @@
-const mongoose = require('mongoose');
-
-let DeviceSchema = new mongoose.Schema({
-  name: {
-    type: String
-  },
-  id: {
-    type: String
-  },
-  model: {
-    type: String
-  }
-});
+let {mongoose} = require('../database/mongoose');
 
 let PlayerSchema = new mongoose.Schema({
   name: {
@@ -27,12 +15,16 @@ let PlayerSchema = new mongoose.Schema({
     default: 5
   },
   device: {
-    type: [DeviceSchema]
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'device'
   },
   playerId: {
     type: String
   },
   tableId: {
+    type: String
+  },
+  chairId: {
     type: String
   }
 });

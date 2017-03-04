@@ -1,18 +1,15 @@
-// Create Table
-// Add Players to given table
-// Control everything about a table
 const {Table} = require('./table');
+const {Chair} = require('./chair');
+const ChairController = require('./chairController');
 var shortid = require('shortid');
 var tables = [];
 
-CreateTable = (name, playerNumber) => {
+CreateTable = (name, numberOfPlayers) => {
   return new Promise((resolve, reject) => {
-    let table = new Table({'name': name, 'playerNumber': playerNumber, 'tableId': shortid.generate()});
-    table.save().then((table) => {
-      tables[table.tableId] = table;
-      resolve(table);
-    }, (err) => {
-      reject('Error while Creating Table');
+    let table = new Table({'name': name, 'numberOfPlayers': numberOfPlayers});
+    ChairController.CreateChair(table).then((chairs) => {
+      table.chairs.push.apply(table.chairs, chairs);
+      table.save();
     });
   });
 }
@@ -20,7 +17,6 @@ CreateTable = (name, playerNumber) => {
 GetAllTables = () => {
   return new Promise((resolve, reject) => {
     Table.find({}).then((data) => {
-      tables = data;
       if(data) {
         resolve(data);
       } else {
@@ -30,22 +26,37 @@ GetAllTables = () => {
   });
 }
 
-AddPlayerToTable = (player, tableId, socket, io) => {
-  Table.findOne({tableId: tableId}).then((table) => {
-    table.players.push({name: player.name, playerId: player.playerId});
+AddPlayerToTable = (player, _id, socket, io) => {
+  Table.findById(_id).then((table) => {
+    table.players.push(player);
+    player.tableId = table._id;
     table.save();
-    socket.join(table.tableId, () => {
-      //io.to(table.tableId).emit('table', `Masaya birisi geldi: ${table.name}`);
-      socket.broadcast.to(table.tableId).emit('table', `Masaya birisi geldi: ${table.name}`);
-      //io.sockets.socket(socket.id).emit('table');
-      io.to(socket.id).emit('table', 'Hoş geldin');
-    });
+    player.save();
+    socket.join(table._id, () => {
 
+      socket.broadcast.to(table._id).emit('table', `Masaya birisi geldi: ${table.name}`);
+      io.to(socket.id).emit('table', 'Hoş geldin');
+      //Sadece bu masadakileri dinleyip oturmak istedikleri Chair'i eğer müsaitse seçtir.
+      socket.on('chooseChair', (chairId) => {
+        ChairController.AddPlayerToChair(player, table, chairId, socket, io);
+      });
+    });
+  });
+}
+
+RemovePlayerFromTable = (player, socket, io) => {
+  Table.findOne({_id: player.tableId}).then((table) => {
+    table.players.splice(player, 1);
+    player.tableId = null;
+    socket.leave(table._id);
+    table.save();
+    player.save();
   });
 }
 
 module.exports = {
   CreateTable,
   GetAllTables,
-  AddPlayerToTable
+  AddPlayerToTable,
+  RemovePlayerFromTable
 }

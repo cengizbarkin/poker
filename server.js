@@ -8,11 +8,12 @@ var shortid = require('shortid');
 const port = process.env.PORT;
 const {Player} = require('./game/player');
 const {Table} = require('./game/table');
-const {AddPlayerToTable} = require('./game/table');
 const publicPath = path.join(__dirname, './public');
 let {mongoose} = require('./database/mongoose');
+
 const TableController = require('./game/tableController');
-const PlayerContoller = require('./game/playerController');
+const PlayerController = require('./game/playerController');
+const ChairController = require('./game/chairController');
 
 let app = express();
 let server = http.createServer(app);
@@ -22,7 +23,6 @@ app.use(express.static(publicPath));
 app.use(bodyParser.json());
 
 var players = [];
-var tables = [];
 
 io.on('connection', (socket) => {
   //console.log('Client Connected');
@@ -30,18 +30,16 @@ io.on('connection', (socket) => {
   var thisPlayer;
 
   socket.on('login', (name, password, deviceId, deviceName, deviceModel)=> {
-    PlayerContoller.Login(name, password, deviceId, deviceName, deviceModel, socket).then((player)=>{
-      players[player.playerId] = player;
+    PlayerController.Login(name, password, deviceId, deviceName, deviceModel, socket).then((player)=>{
+      players[player._id] = player;
       thisPlayer = player;
-
     });
   });
 
   socket.on('signup', (name, password, deviceId, deviceName, deviceModel) => {
-    PlayerContoller.Signup(name, password, deviceId, deviceName, deviceModel, socket).then((player)=>{
-      players[player.playerId] = player;
+    PlayerController.Signup(name, password, deviceId, deviceName, deviceModel, socket).then((player)=>{
+      players[player._id] = player;
       thisPlayer = player;
-      console.log(players);
     });
   });
 
@@ -56,15 +54,15 @@ io.on('connection', (socket) => {
   });
 
   socket.on('createTable', (tableProps) => {
-    TableController.CreateTable(tableProps.tableName, tableProps.playerNumber).then((table) => {
+    TableController.CreateTable(tableProps.tableName, tableProps.numberOfPlayers).then((table) => {
       //console.log(`Masa oluştu ${table}`);
     });
       //io.sockets.emit('createTable', JSON.stringify(tables));
   });
 
-  socket.on('joinTable', (tableId) => {
-    thisPlayer.tableId = tableId;
-    TableController.AddPlayerToTable(thisPlayer, tableId, socket, io);
+  socket.on('joinTable', (_id) => {
+    thisPlayer.tableId = _id;
+    TableController.AddPlayerToTable(thisPlayer, _id, socket, io);
   });
 
   socket.on('logPlayers', () => {
@@ -75,7 +73,9 @@ io.on('connection', (socket) => {
     console.log('Player disconnected');
     if(thisPlayer != null) {
       console.log('Disconnected player name: ' + thisPlayer.name);
-      delete players[thisPlayer.playerId];
+      TableController.RemovePlayerFromTable(thisPlayer, socket, io);
+      ChairController.RemovePlayerFromChair(thisPlayer, socket, io);
+      delete players[thisPlayer._id];
     }
     console.log('All players' + players);
   });

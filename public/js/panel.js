@@ -6,12 +6,12 @@ var logButton = jQuery('#logPlayers');
 
 tableButton.on('click', function () {
   var tableName = jQuery('#tableName').val();
-  var playerNumber = jQuery('#playerNumber').val();
+  var numberOfPlayers = jQuery('#numberOfPlayers').val();
 
   tableButton.attr('disabled', 'disabled').text('Creating');
   socket.emit('createTable', {
     tableName: tableName,
-    playerNumber: playerNumber
+    numberOfPlayers: numberOfPlayers
   });
 });
 
