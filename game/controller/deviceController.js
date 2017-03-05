@@ -4,7 +4,11 @@ const {Device} = require('../model/device');
 
 RegisterDevice = (player, deviceId, deviceName, deviceModel) => {
   return new Promise ((resolve, reject) => {
-    if(player.device.length >= player.maxNumberOfDevices) {
+    if(player.role == 'system'){
+      let device = new Device({name: 'system', id: 'system', model: 'system'});
+      resolve(device);
+    } else {
+      if(player.device.length >= player.maxNumberOfDevices) {
       reject('You have reached your maximum amount of synchronised device number');
     }
     Device.findOne({id: deviceId}).then((data)=> {
@@ -25,11 +29,15 @@ RegisterDevice = (player, deviceId, deviceName, deviceModel) => {
           });
         }
     });
-  });
+  }});
 }
 
 CheckDevice = (player, deviceId) => {
   return new Promise((resolve, reject) => {
+    if(player.role == 'system'){
+      let device = new Device({name: 'system', id: 'system', model: 'system'});
+      resolve(device);
+    } else {
     Device.findOne({id:deviceId}).then((device)=>{
       if(device != null) {
         resolve(device);
@@ -39,7 +47,7 @@ CheckDevice = (player, deviceId) => {
     }, (err) => {
       reject('Database error!');
     });
-  });
+  }});
 }
 
 module.exports = {

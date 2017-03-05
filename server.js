@@ -31,8 +31,8 @@ io.on('connection', (socket) => {
 
   socket.on('login', (name, password, deviceId, deviceName, deviceModel)=> {
     PlayerController.Login(name, password, deviceId, deviceName, deviceModel, socket).then((player)=>{
-      players[player._id] = player;
       thisPlayer = player;
+      players[thisPlayer._id] = thisPlayer;
     });
   });
 
@@ -72,12 +72,11 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('Player disconnected');
     if(thisPlayer != null) {
+      delete players[thisPlayer._id];
       console.log('Disconnected player name: ' + thisPlayer.name);
       TableController.RemovePlayerFromTable(thisPlayer, socket, io);
       ChairController.RemovePlayerFromChair(thisPlayer, socket, io);
-      delete players[thisPlayer._id];
     }
-    console.log('All players' + players);
   });
 
 });

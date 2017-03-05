@@ -38,22 +38,26 @@ AddPlayerToTable = (player, _id, socket, io) => {
       io.to(socket.id).emit('forPlayer', `Hoş geldin ${player.name}`);
       //Sadece bu masadakileri dinleyip oturmak istedikleri Chair'i eğer müsaitse seçtir.
       socket.on('chooseChair', (chair) => {
-        ChairController.AddPlayerToChair(player, table, chair, socket, io);
+          ChairController.AddPlayerToChair(player, table, chair, socket, io);
       });
     });
   });
 }
 
+
 RemovePlayerFromTable = (player, socket, io) => {
+console.log('Remove çağırıldı');
+  if(player.table != null){
   socket.broadcast.to(player.table).emit('forTable', `Birisi ayrıldı: ${player.name}`);
   Table.findOne({_id: player.table}).then((table) => {
     table.players.splice(player, 1);
-    player.tableId = null;
+    player.table = null;
     socket.leave(table._id);
     table.save();
     player.save();
   });
-}
+}}
+
 
 module.exports = {
   CreateTable,

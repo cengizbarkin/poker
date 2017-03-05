@@ -10,6 +10,11 @@ let PlayerSchema = new mongoose.Schema({
   password: {
     type: String
   },
+  role: {
+    type: String,
+    enum: ['system', 'admin', 'agent', 'partner', 'player'],
+    default: 'player'
+  },
   maxNumberOfDevices: {
     type: Number,
     default: 5

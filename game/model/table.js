@@ -18,6 +18,10 @@ let TableSchema = new mongoose.Schema({
   chairs: {
     type: [mongoose.Schema.Types.ObjectId],
     ref: 'chair'
+  },
+  isGamePlaying: {
+    type: Boolean,
+    default: false
   }
 });
 
