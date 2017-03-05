@@ -6,14 +6,14 @@ const socketIO = require('socket.io');
 const bodyParser = require('body-parser');
 var shortid = require('shortid');
 const port = process.env.PORT;
-const {Player} = require('./game/player');
-const {Table} = require('./game/table');
+const {Player} = require('./game/model/player');
+const {Table} = require('./game/model/table');
 const publicPath = path.join(__dirname, './public');
 let {mongoose} = require('./database/mongoose');
 
-const TableController = require('./game/tableController');
-const PlayerController = require('./game/playerController');
-const ChairController = require('./game/chairController');
+const TableController = require('./game/controller/tableController');
+const PlayerController = require('./game/controller/playerController');
+const ChairController = require('./game/controller/chairController');
 
 let app = express();
 let server = http.createServer(app);
@@ -61,7 +61,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('joinTable', (_id) => {
-    thisPlayer.tableId = _id;
+    thisPlayer.table = _id;
     TableController.AddPlayerToTable(thisPlayer, _id, socket, io);
   });
 
