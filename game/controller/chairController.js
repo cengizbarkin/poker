@@ -35,11 +35,10 @@ AddPlayerToChair = (player, table, chairId, socket, io) => {
           if(!table.isGamePlaying) {
             io.to(socket.id).emit('forPlayer', `Diğer oyuncular bekleniyor ${player.name}`);
             Chair.find({table: table._id, isTaken: true}).then((chairs) => {
-              console.log(chairs);
               if(chairs.length >= 2) {
                 table.isGamePlaying = true;
                 table.save().then((table) => {
-                  socket.broadcast.to(table._id).emit('forTable', `Oyun Başladı: ${player.chair}`);
+                  HoldemController.StartHoldem(table, chairs, socket);
                 });
               } else {
                 //Burada gelen oyuncuyu hazır oynanan oyuna direkt olarak gönder

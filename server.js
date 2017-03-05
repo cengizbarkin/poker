@@ -43,6 +43,15 @@ io.on('connection', (socket) => {
     });
   });
 
+  socket.on('createSystemUser', (data) =>{
+    let player = new Player({'name': data.name, password: data.password, role: data.role});
+    player.save().then((player)=>{
+      console.log('Player oluşturuldu' + player);
+    }, (err) => {
+      console.log(err);
+    });
+  });
+
   socket.on('lobbyScene', () => {
     //Tüm player ve masa bilgilerini Array olarak kullanıcıya gönder
     TableController.GetAllTables().then((tables) => {
