@@ -19,7 +19,7 @@ Login = (name, password, deviceId, deviceName, deviceModel, socket) => {
             //Player'ı değişken içine atıp arrayin içine atıyouz
             thisPlayer = player;
             resolve(player);
-            socket.emit('loginSuccess', 'Congratulations you have successfully loggedin.', device.name);
+            socket.emit('loginSuccess', JSON.stringify(player));
           }, (err) => {
             console.log(err);
             if(player.device.length >= player.maxNumberOfDevices){
@@ -62,7 +62,8 @@ Signup = (name, password, deviceId, deviceName, deviceModel, socket) => {
           if(data) {
             socket.emit('signupError', `This device was synced with another user account`);
           } else {
-            let player = new Player({name, password});
+            let avatar = Math.floor(Math.random() * (10 - 1 + 1)) + 1;
+            let player = new Player({name, password, avatar, table:null, chair:null});
               deviceController.RegisterDevice(player, deviceId, deviceName, deviceModel).then((player) => {
               player.save().then((player) => {
               resolve(player);
@@ -76,7 +77,19 @@ Signup = (name, password, deviceId, deviceName, deviceModel, socket) => {
   });
 }
 
+DataToSendLobby = () => {
+  return new Promise((resolve, reject) => {
+    Player.find({table: {$ne: null}}, '-password -role -maxNumberOfDevices -device').then((players) => {
+      if(players) {
+        resolve(players);
+      } else {
+        reject('Database error');
+      }
+    });
+  });
+}
 module.exports = {
   Login,
-  Signup
+  Signup,
+  DataToSendLobby
 }

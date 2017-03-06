@@ -30,6 +30,9 @@ let PlayerSchema = new mongoose.Schema({
   chair: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'chair'
+  },
+  avatar: {
+    type: Number
   }
 });
 

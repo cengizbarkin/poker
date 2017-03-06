@@ -22,6 +22,18 @@ let TableSchema = new mongoose.Schema({
   isGamePlaying: {
     type: Boolean,
     default: false
+  },
+  minStake: {
+    type: Number
+  },
+  maxStake: {
+    type: Number
+  },
+  minBuyin: {
+    type: Number
+  },
+  maxBuyin: {
+    type: Number
   }
 });
 

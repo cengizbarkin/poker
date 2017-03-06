@@ -1,5 +1,7 @@
 const {Table} = require('../model/table');
 const {Chair} = require('../model/chair');
+const {Player} = require('../model/player');
+
 const ChairController = require('../controller/chairController');
 var shortid = require('shortid');
 var tables = [];
@@ -59,9 +61,23 @@ console.log('Remove çağırıldı');
 }}
 
 
+DataToSendLobby = () => {
+  return new Promise((resolve, reject) => {
+    Table.find({}, '-players -chairs').then((tables) => {
+      if(tables) {
+        resolve(tables);
+      } else {
+        reject('Database error');
+      }
+    });
+  });
+}
+
+
 module.exports = {
   CreateTable,
   GetAllTables,
   AddPlayerToTable,
-  RemovePlayerFromTable
+  RemovePlayerFromTable,
+  DataToSendLobby
 }

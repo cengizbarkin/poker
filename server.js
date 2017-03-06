@@ -44,7 +44,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('createSystemUser', (data) =>{
-    let player = new Player({'name': data.name, password: data.password, role: data.role});
+    let player = new Player({'name': data.name, password: data.password, role: data.role, avatar: 1, table:null, chair:null});
     player.save().then((player)=>{
       console.log('Player oluşturuldu' + player);
     }, (err) => {
@@ -54,8 +54,13 @@ io.on('connection', (socket) => {
 
   socket.on('lobbyScene', () => {
     //Tüm player ve masa bilgilerini Array olarak kullanıcıya gönder
-    TableController.GetAllTables().then((tables) => {
-      socket.emit('lobbyDetails', JSON.stringify(tables));
+    TableController.DataToSendLobby().then((tables) => {
+      ChairController.DataToSendLobby().then((chairs) => {
+        PlayerController.DataToSendLobby().then((players) => {
+          console.log(players);
+          socket.emit('lobbyDetails', JSON.stringify(tables), JSON.stringify(chairs), JSON.stringify(players));
+        });
+      });
       //socket.broadcast.emit('lobbyDetails', JSON.stringify(tables));
     }, (error) => {
       socket.emit('defaultError', error);

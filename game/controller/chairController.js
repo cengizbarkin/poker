@@ -63,8 +63,22 @@ RemovePlayerFromChair = (player, socket, io) => {
   }
 }
 
+DataToSendLobby = () => {
+  return new Promise((resolve, reject) => {
+    Chair.find({}, '-player').then((chairs) => {
+      if(chairs) {
+        resolve(chairs);
+      } else {
+        reject('Database error');
+      }
+    });
+  });
+}
+
+
 module.exports = {
   CreateChair,
   AddPlayerToChair,
-  RemovePlayerFromChair
+  RemovePlayerFromChair,
+  DataToSendLobby
 }
