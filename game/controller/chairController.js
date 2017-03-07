@@ -58,14 +58,16 @@ RemovePlayerFromChair = (player, socket, io) => {
       chair.isTaken = false;
       player.chair = null;
       chair.save();
-      player.save();
+      player.save().then((player) => {
+        socket.broadcast.emit('removePlayerFromChair', JSON.stringify(chair));
+      });
     });
   }
 }
 
 DataToSendLobby = () => {
   return new Promise((resolve, reject) => {
-    Chair.find({}, '-player').then((chairs) => {
+    Chair.find({}).then((chairs) => {
       if(chairs) {
         resolve(chairs);
       } else {
