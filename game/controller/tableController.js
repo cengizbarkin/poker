@@ -48,8 +48,8 @@ AddPlayerToTable = (player, _id, socket, io) => {
 
 
 RemovePlayerFromTable = (player, socket, io) => {
-console.log('Remove çağırıldı');
   if(player.table != null){
+  console.log('RemoveTable çağırıldı');
   socket.broadcast.to(player.table).emit('forTable', `Birisi ayrıldı: ${player.name}`);
   Table.findOne({_id: player.table}).then((table) => {
     table.players.splice(player, 1);
@@ -57,6 +57,7 @@ console.log('Remove çağırıldı');
     socket.leave(table._id);
     table.save();
     player.save();
+    io.to(socket.id).emit('returnLobbyCalled');
   });
 }}
 

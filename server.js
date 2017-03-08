@@ -83,6 +83,15 @@ io.on('connection', (socket) => {
     console.log(players);
   });
 
+  socket.on('returnLobby', () => {
+    if(thisPlayer != null) {
+      console.log('Returned Lobby Name: ' + thisPlayer.name);
+      TableController.RemovePlayerFromTable(thisPlayer, socket, io);
+      ChairController.RemovePlayerFromChair(thisPlayer, socket, io);
+    }
+  });
+
+
   socket.on('disconnect', () => {
     console.log('Player disconnected');
     if(thisPlayer != null) {
