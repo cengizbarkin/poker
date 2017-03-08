@@ -56,8 +56,10 @@ RemovePlayerFromTable = (player, socket, io) => {
     player.table = null;
     socket.leave(table._id);
     table.save();
-    player.save();
-    io.to(socket.id).emit('returnLobbyCalled');
+    player.save().then((player) => {
+    io.to(socket.id).emit('returnLobbyCalled');  
+    });
+
   });
 }}
 
