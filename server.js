@@ -8,6 +8,7 @@ var shortid = require('shortid');
 const port = process.env.PORT;
 const {Player} = require('./game/model/player');
 const {Table} = require('./game/model/table');
+const {Chair} = require('./game/model/chair');
 const publicPath = path.join(__dirname, './public');
 let {mongoose} = require('./database/mongoose');
 
@@ -53,7 +54,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('lobbyScene', () => {
-    //Tüm player ve masa bilgilerini Array olarak kullanıcıya gönder
+    if(thisPlayer)  {
     TableController.DataToSendLobby().then((tables) => {
       ChairController.DataToSendLobby().then((chairs) => {
         PlayerController.DataToSendLobby().then((players) => {
@@ -65,6 +66,7 @@ io.on('connection', (socket) => {
     }, (error) => {
       socket.emit('defaultError', error);
     });
+  }
   });
 
   socket.on('createTable', (tableProps) => {
@@ -75,8 +77,20 @@ io.on('connection', (socket) => {
   });
 
   socket.on('joinTable', (_id) => {
-    thisPlayer.table = _id;
-    TableController.AddPlayerToTable(thisPlayer, _id, socket, io);
+    if(thisPlayer) {
+      thisPlayer.table = _id;
+      TableController.AddPlayerToTable(thisPlayer, _id, socket, io);
+    }
+  });
+
+  socket.on('chooseChair', (chair) => {
+    console.log('Chair değeri:' + chair);
+    Chair.findById(chair).then((chair) => {
+        console.log(chair.table);
+      Table.findById(chair.table).then((table) => {
+        ChairController.AddPlayerToChair(thisPlayer, table, chair, socket, io);
+      });
+    });
   });
 
   socket.on('logPlayers', () => {

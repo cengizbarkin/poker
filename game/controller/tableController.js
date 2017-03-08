@@ -32,15 +32,14 @@ AddPlayerToTable = (player, _id, socket, io) => {
   Table.findById(_id).then((table) => {
     table.players.push(player);
     player.table = table._id;
-    table.save();
-    player.save();
-    socket.join(table._id, () => {
-
-      socket.broadcast.to(table._id).emit('forTable', `Masaya birisi geldi: ${player.name}`);
-      io.to(socket.id).emit('forPlayer', `Hoş geldin ${player.name}`);
-      //Sadece bu masadakileri dinleyip oturmak istedikleri Chair'i eğer müsaitse seçtir.
-      socket.on('chooseChair', (chair) => {
-          ChairController.AddPlayerToChair(player, table, chair, socket, io);
+    table.save().then((table) => {
+      player.save().then((player) => {
+        socket.join(table._id, () => {
+          socket.broadcast.to(table._id).emit('forTable', `Masaya birisi geldi: ${player.name}`);
+          io.to(socket.id).emit('forPlayer', `Hoş geldin ${player.name}`);
+          //Sadece bu masadakileri dinleyip oturmak istedikleri Chair'i eğer müsaitse seçtir.
+          
+        });
       });
     });
   });
@@ -55,11 +54,11 @@ RemovePlayerFromTable = (player, socket, io) => {
     table.players.splice(player, 1);
     player.table = null;
     socket.leave(table._id);
-    table.save();
-    player.save().then((player) => {
-    io.to(socket.id).emit('returnLobbyCalled');  
+    table.save().then((table) => {
+      player.save().then((player) => {
+      io.to(socket.id).emit('returnLobbyCalled');
+      });
     });
-
   });
 }}
 

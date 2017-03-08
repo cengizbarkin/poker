@@ -20,8 +20,8 @@ CreateChair = (table) => {
 }
 
 AddPlayerToChair = (player, table, chairId, socket, io) => {
-  Chair.findById({_id: chairId}).then((chair) => {
-    if(player.chair != null) {
+  Chair.findById(chairId).then((chair) => {
+    if(player.chair != null && player.chair != chairId) {
       io.to(socket.id).emit('forPlayer', `Sadece 1 adet sandalya seçebilirsin ${player.name}`);
     } else if(chair.player != null) {
       io.to(socket.id).emit('forPlayer', `Seçmiş olduğunuz sandalye doludur ${player.name}`);
@@ -30,6 +30,7 @@ AddPlayerToChair = (player, table, chairId, socket, io) => {
       player.chair = chair._id;
       chair.isTaken = true;
       socket.broadcast.to(table._id).emit('forTable', `Sandalyenin biri alındı: ${player.chair}`);
+      console.log('Broadcast edilen table id: ' + table._id);
       chair.save().then((chair) => {
         player.save().then((player) => {
           socket.broadcast.emit('addPlayerToChair', JSON.stringify(player), JSON.stringify(chair));
@@ -51,6 +52,7 @@ AddPlayerToChair = (player, table, chairId, socket, io) => {
     }
   });
 }
+
 
 RemovePlayerFromChair = (player, socket, io) => {
   if(player.chair != null) {
