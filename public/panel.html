@@ -6,9 +6,27 @@
 
   </head>
   <body>
+    <select class="" name="" id="selectSaloon">
+      <option value="Los Angeles">LosAngeles</option>
+      <option value="California">California</option>
+      <option value="NewYork">NewYork</option>
+      <option value="Vegas">Vegas</option>
+      <option value="VIP">VIP</option>
+    </select>
+    <button id="createSaloon">Create Saloon</button>
+
+    <br>
+    <br>
 
     <input id="tableName" type="text" name="" value="" placeholder="Table Name">
-    <input id="numberOfPlayers" type="text" name="Number of Players" value="" placeholder="Number of Players">
+    <input id="minStake" type="text" name="Minimum Stake" value="" placeholder="Minimum Stake">
+    <input id="minBuyin" type="text" name="Minimum Buyin" value="" placeholder="Minimum Buyin">
+
+    <select class="" name="" id="numberOfPlayers">
+      <option value="2">2</option>
+      <option value="6">6</option>
+      <option value="9">9</option>
+    </select>
 
     <button id="createTable">Create Table</button>
 
@@ -29,7 +47,13 @@
 
     <br>
     <br>
+
     <button id="logPlayers">Log Players</button>
+
+    <br>
+    <br>
+
+    <button id="createDummyData">Create Dummy Data</button>
 
 
     <script src="/socket.io/socket.io.js"> </script>

@@ -19,6 +19,10 @@ let TableSchema = new mongoose.Schema({
     type: [mongoose.Schema.Types.ObjectId],
     ref: 'chair'
   },
+  saloon: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'saloon'
+  },
   isGamePlaying: {
     type: Boolean,
     default: false

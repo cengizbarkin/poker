@@ -10,18 +10,14 @@ let PlayerSchema = new mongoose.Schema({
   password: {
     type: String
   },
+  balance: {
+    type: Number,
+    default: 0
+  },
   role: {
     type: String,
     enum: ['system', 'admin', 'agent', 'partner', 'player'],
     default: 'player'
-  },
-  maxNumberOfDevices: {
-    type: Number,
-    default: 5
-  },
-  device: {
-    type: [mongoose.Schema.Types.ObjectId],
-    ref: 'device'
   },
   table: {
     type: mongoose.Schema.Types.ObjectId,
@@ -32,7 +28,11 @@ let PlayerSchema = new mongoose.Schema({
     ref: 'chair'
   },
   avatar: {
-    type: Number
+    type: String
+  },
+  saloon: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'saloon'
   }
 });
 

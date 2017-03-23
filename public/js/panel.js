@@ -3,16 +3,25 @@ var socket = io();
 var tableButton = jQuery('#createTable');
 var logButton = jQuery('#logPlayers');
 
+var saloonButton = jQuery('#createSaloon');
 var createSistemUser = jQuery('#createUser');
+
+var createDummyData = jQuery('#createDummyData');
 
 tableButton.on('click', function () {
   var tableName = jQuery('#tableName').val();
   var numberOfPlayers = jQuery('#numberOfPlayers').val();
+  var minStake = jQuery('#minStake').val();
+  var minBuyin = jQuery('#minBuyin').val();
+  var saloonName = jQuery('#selectSaloon').val();
 
   tableButton.attr('disabled', 'disabled').text('Creating');
   socket.emit('createTable', {
     tableName: tableName,
-    numberOfPlayers: numberOfPlayers
+    numberOfPlayers: numberOfPlayers,
+    saloonName: saloonName,
+    minStake: minStake,
+    minBuyin: minBuyin
   });
 });
 
@@ -29,6 +38,16 @@ createSistemUser.on('click', function () {
   });
 });
 
+
+saloonButton.on('click', function(){
+  var saloonName = jQuery('#selectSaloon').val();
+  socket.emit('createSaloon', saloonName);
+});
+
+
+createDummyData.on('click', function() {
+  socket.emit('createDummyData');
+});
 
 
 logButton.on('click', function () {

@@ -1,4 +1,6 @@
 const {Chair} = require('../model/chair');
+const {Player} = require('../model/player');
+
 const HoldemController = require('../controller/holdemController');
 
 var shortid = require('shortid');
@@ -19,54 +21,46 @@ CreateChair = (table) => {
   });
 }
 
-AddPlayerToChair = (player, table, chairId, socket, io) => {
-  Chair.findById(chairId).then((chair) => {
-    if(player.chair != null && player.chair != chairId) {
-      io.to(socket.id).emit('forPlayer', `Sadece 1 adet sandalya seçebilirsin ${player.name}`);
-    } else if(chair.player != null) {
-      io.to(socket.id).emit('forPlayer', `Seçmiş olduğunuz sandalye doludur ${player.name}`);
-    } else {
-      chair.player = player;
-      player.chair = chair._id;
-      chair.isTaken = true;
-      socket.broadcast.to(table._id).emit('forTable', `Sandalyenin biri alındı: ${player.chair}`);
-      console.log('Broadcast edilen table id: ' + table._id);
-      chair.save().then((chair) => {
-        player.save().then((player) => {
-          socket.broadcast.emit('addPlayerToChair', JSON.stringify(player), JSON.stringify(chair));
-          if(!table.isGamePlaying) {
-            io.to(socket.id).emit('forPlayer', `Diğer oyuncular bekleniyor ${player.name}`);
-            Chair.find({table: table._id, isTaken: true}).then((chairs) => {
-              if(chairs.length >= 2) {
-                table.isGamePlaying = true;
-                table.save().then((table) => {
-                  HoldemController.StartHoldem(table, chairs, socket);
-                });
-              } else {
-                //Burada gelen oyuncuyu hazır oynanan oyuna direkt olarak gönder
-              }
+
+AddPlayerToChair = (playerId, chairId) => {
+  return new Promise((resolve, reject) => {
+    Player.findById(playerId).then((player) => {
+      Chair.findById(chairId).then((chair) => {
+        if(player.chair == null && chair.isTaken == false) {
+          player.chair = chair._id;
+          player.save().then((player) => {
+            chair.player = player._id;
+            chair.isTaken = true;
+            chair.save().then((chair) => {
+              resolve(player);
             });
-          }
-        });
+          });
+        } else {
+          reject('Player can not choose chair');
+        }
       });
-    }
+    });
   });
 }
 
 
-RemovePlayerFromChair = (player, socket, io) => {
-  if(player.chair != null) {
-    Chair.findById(player.chair).then((chair)=>{
-      chair.player = null;
-      chair.isTaken = false;
-      player.chair = null;
-      chair.save();
-      player.save().then((player) => {
-        socket.broadcast.emit('removePlayerFromChair', JSON.stringify(chair));
-        io.to(socket.id).emit('returnLobbyCalled');
+RemovePlayerFromChair = (player) => {
+  return new Promise ((resolve, reject) => {
+    if(player.chair != null) {
+      Chair.findById(player.chair).then((chair) => {
+        chair.isTaken = false;
+        chair.player = null;
+        chair.save().then((chair) => {
+          player.chair = null;
+          player.save().then((player) => {
+            resolve(player);
+          });
+        });
       });
-    });
-  }
+    } else {
+      reject('Player does not have a chair');
+    }
+  });
 }
 
 DataToSendLobby = () => {
@@ -81,10 +75,22 @@ DataToSendLobby = () => {
   });
 }
 
+GetChairsInTable = (tableId) => {
+  return new Promise((resolve, reject) => {
+    Chair.find({table: tableId}).then((chairs) => {
+      if(chairs) {
+        resolve(chairs);
+      } else {
+        reject('Database Error');
+      }
+    });
+  });
+}
 
 module.exports = {
   CreateChair,
   AddPlayerToChair,
   RemovePlayerFromChair,
-  DataToSendLobby
+  DataToSendLobby,
+  GetChairsInTable
 }

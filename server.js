@@ -4,21 +4,22 @@ const path = require('path');
 const http = require('http');
 const socketIO = require('socket.io');
 const bodyParser = require('body-parser');
-var shortid = require('shortid');
 const port = process.env.PORT;
-const {Player} = require('./game/model/player');
-const {Table} = require('./game/model/table');
-const {Chair} = require('./game/model/chair');
 const publicPath = path.join(__dirname, './public');
 let {mongoose} = require('./database/mongoose');
 
 const TableController = require('./game/controller/tableController');
 const PlayerController = require('./game/controller/playerController');
 const ChairController = require('./game/controller/chairController');
+const SaloonController = require('./game/controller/saloonController');
 
 let app = express();
 let server = http.createServer(app);
 let io = socketIO(server);
+
+const loginNsp = io.of('/login');
+const lobbyNsp = io.of('/lobby');
+const holdemNsp = io.of('/holdem');
 
 app.use(express.static(publicPath));
 app.use(bodyParser.json());
@@ -26,102 +27,219 @@ app.use(bodyParser.json());
 var players = [];
 
 io.on('connection', (socket) => {
-  //console.log('Client Connected');
 
-  var thisPlayer;
+  players[socket.id] = null;
 
-  socket.on('login', (name, password, deviceId, deviceName, deviceModel)=> {
-    PlayerController.Login(name, password, deviceId, deviceName, deviceModel, socket).then((player)=>{
-      thisPlayer = player;
-      players[thisPlayer._id] = thisPlayer;
+  socket.on('createTable', (tableProps) => {
+    TableController.CreateTable(tableProps.tableName, tableProps.numberOfPlayers, tableProps.saloonName, tableProps.minStake).then((table) => {
+      SaloonController.AddTableToSaloon(table._id, tableProps.saloonName);
+    });
+  });
+  socket.on('createSaloon', (saloonName) => {
+    SaloonController.CreateSaloon(saloonName);
+  });
+  socket.on('createDummyData', () => {
+    for (var i = 0; i < 5; i++) {
+      SaloonController.CreateSaloon(`Salon ${i + 1}`).then((saloon) => {
+        for (var j = 0; j < 5; j++) {
+          var seats = Math.floor(Math.random() * 3) + 1;
+          if(seats == 1) {
+            TableController.CreateTable(`Table ${j + 1}`, 2, saloon.name, j*2, j*2*20);
+          }
+          if(seats == 2) {
+            TableController.CreateTable(`Table ${j + 1}`, 6, saloon.name, j*2, j*2*20);
+          }
+          if(seats == 3) {
+            TableController.CreateTable(`Table ${j + 1}`, 9, saloon.name, j*2, j*2*20);
+          }
+        }
+      });
+    }
+  });
+  socket.on('logPlayers', () => {
+    console.log(players);
+  });
+
+  socket.on('disconnect', () => {
+    if(players[socket.id] != null) {
+      if(players[socket.id].chair != null && players[socket.id].table != null) {
+           TableController.RemovePlayerFromTable(players[socket.id]).then((table) => {
+             ChairController.RemovePlayerFromChair(players[socket.id]).then((player) => {
+               socket.leave(table._id, () => {
+                 console.log('Player socket den ayrıldı');
+                 delete players[socket.id];
+               });
+             }, (err) => {
+               console.log(err);
+             });
+           }, (err) => {
+             console.log(err);
+           });
+        } else if(players[socket.id].chair != null && players[socket.id].table == null) {
+          ChairController.RemovePlayerFromChair(players[socket.id]).then((chair) => {
+            delete players[socket.id];
+          }, (err) => {
+            console.log(err);
+          });
+        } else if(players[socket.id].chair == null && players[socket.id].table != null) {
+          TableController.RemovePlayerFromTable(players[socket.id]).then((table) => {
+            delete players[socket.id];
+          }, (err) => {
+            console.log(err);
+          });
+        } else {
+          delete players[socket.id];
+        }
+      }
+  });
+
+});
+
+loginNsp.on('connection', (socket) => {
+
+
+  console.log('Player is in Login Page');
+  socket.on('login', (name, password, callback) => {
+    PlayerController.Login(name, password).then((player)=>{
+      console.log('Player loggedin successfully: ' + player.name);
+      players[(socket.id).substring(7)] = player;
+      callback(JSON.stringify(player));
+    }).catch((err) => {
+      socket.emit('defaultError', JSON.stringify(err));
+      console.log(err);
     });
   });
 
-  socket.on('signup', (name, password, deviceId, deviceName, deviceModel) => {
-    PlayerController.Signup(name, password, deviceId, deviceName, deviceModel, socket).then((player)=>{
-      players[player._id] = player;
-      thisPlayer = player;
+  socket.on('signup', (name, password, avatar, callback) => {
+    PlayerController.Signup(name, password, avatar).then((player) => {
+      callback(JSON.stringify(player));
+    }).catch((err) => {
+      socket.emit('defaultError', JSON.stringify(err));
+      console.log(err);
     });
   });
 
-  socket.on('createSystemUser', (data) =>{
-    let player = new Player({'name': data.name, password: data.password, role: data.role, avatar: 1, table:null, chair:null});
-    player.save().then((player)=>{
-      console.log('Player oluşturuldu' + player);
+  socket.on('disconnect', () => {
+    if(players[(socket.id).substring(7)] != null) {
+      console.log('Player disconnect from Login');
+    }
+
+  });
+
+
+});
+
+
+lobbyNsp.on('connection', (socket) => {
+  console.log('Player is on Lobby');
+
+  TableController.DataToSendLobby().then((tables) => {
+    ChairController.DataToSendLobby().then((chairs) => {
+      PlayerController.DataToSendLobby().then((players) => {
+        SaloonController.DataToSendLobby().then((saloons) => {
+          socket.emit('lobbyDetails', JSON.stringify(tables), JSON.stringify(chairs), JSON.stringify(players), JSON.stringify(saloons));
+        }).catch((err) => {
+          socket.emit('defaultError', JSON.stringify(err));
+          console.log(err);
+        });
+      }).catch((err) => {
+        socket.emit('defaultError', JSON.stringify(err));
+        console.log(err);
+      });
+    }).catch((err) => {
+      socket.emit('defaultError', JSON.stringify(err));
+      console.log(err);
+    });
+  }).catch((err) => {
+    socket.emit('defaultError', JSON.stringify(err));
+    console.log(err);
+  });
+
+  socket.on('joinTable', (playerId, tableId, callback) => {
+    TableController.AddPlayerToTable(players[(socket.id).substring(7)], tableId).then((table) => {
+      callback(table._id);
+    });
+    //Burada gelen Player'ı array den bulup gerekli işlemleri yap
+  });
+
+
+});
+
+
+holdemNsp.on('connection', (socket) => {
+  console.log('Player is on Game Screen');
+
+  socket.on('askForHoldemDetails', (tableId, callback) => {
+    TableController.GetTableDetails(tableId).then((table) => {
+      ChairController.GetChairsInTable(tableId).then((chairs) => {
+        PlayerController.GetPlayersInTable(tableId).then((players) => {
+          socket.join(tableId, () => {
+            callback(JSON.stringify(chairs), JSON.stringify(players), JSON.stringify(table));
+          });
+        });
+      });
+    });
+  });
+
+  socket.on('chooseChair', (playerId, chairId, callback) => {
+    ChairController.AddPlayerToChair(playerId, chairId).then((player) => {
+      players[(socket.id).substring(8)] = player;
+      lobbyNsp.emit("addPlayerToChair", player._id, player.chair, player.saloon, player.table);
+      holdemNsp.to(player.table).emit("addPlayerToChair", player._id, player.name, player.balance, player.chair, player.avatar);
+      callback(player.chair);
     }, (err) => {
       console.log(err);
     });
   });
 
-  socket.on('lobbyScene', () => {
-    if(thisPlayer)  {
-    TableController.DataToSendLobby().then((tables) => {
-      ChairController.DataToSendLobby().then((chairs) => {
-        PlayerController.DataToSendLobby().then((players) => {
-          console.log(players);
-          socket.emit('lobbyDetails', JSON.stringify(tables), JSON.stringify(chairs), JSON.stringify(players));
+  socket.on('removeChair', (playerId, chairId, callback) => {
+    if(players[(socket.id).substring(8)] != null) {
+      ChairController.RemovePlayerFromChair(players[(socket.id).substring(8)]).then((player) => {
+        players[(socket.id).substring(8)] = player;
+        lobbyNsp.emit("removePlayerFromChair", playerId, chairId, player.saloon, players[(socket.id).substring(8)].table);
+        holdemNsp.to(players[(socket.id).substring(8)].table).emit("removePlayerFromChair", player._id, chairId);
+        callback(player.chair);
+      }, (err) => {
+        console.log(err);
+      });
+    }
+  });
+
+  socket.on('returnLobby', (playerId, callback) => {
+    if(players[(socket.id).substring(8)] != null) {
+      if(players[(socket.id).substring(8)].chair != null && players[(socket.id).substring(8)].table != null) {
+        let dummyChair = players[(socket.id).substring(8)].chair;
+        let dummyTable = players[(socket.id).substring(8)].table;
+        let dummySaloon = players[(socket.id).substring(8)].saloon;
+        TableController.RemovePlayerFromTable(players[(socket.id).substring(8)]).then((table) => {
+          ChairController.RemovePlayerFromChair(players[(socket.id).substring(8)]).then((player) => {
+            socket.leave(table._id, () => {
+              players[(socket.id).substring(8)] = player;
+              lobbyNsp.emit("removePlayerFromChair", player._id, dummyChair, dummySaloon, dummyTable);
+              holdemNsp.to(dummyTable).emit("removePlayerFromChair", player._id, dummyChair);
+              callback(playerId);
+            });
+          }, (err) => {
+            console.log(err);
+          });
+        }, (err) => {
+          console.log(err);
         });
-      });
-      //socket.broadcast.emit('lobbyDetails', JSON.stringify(tables));
-    }, (error) => {
-      socket.emit('defaultError', error);
-    });
-  }
-  });
-
-  socket.on('createTable', (tableProps) => {
-    TableController.CreateTable(tableProps.tableName, tableProps.numberOfPlayers).then((table) => {
-      //console.log(`Masa oluştu ${table}`);
-    });
-      //io.sockets.emit('createTable', JSON.stringify(tables));
-  });
-
-  socket.on('joinTable', (_id) => {
-    if(thisPlayer) {
-      thisPlayer.table = _id;
-      TableController.AddPlayerToTable(thisPlayer, _id, socket, io);
+      } else if(players[(socket.id).substring(8)].table != null && players[(socket.id).substring(8)].chair == null) {
+        TableController.RemovePlayerFromTable(players[(socket.id).substring(8)]).then((table) => {
+          socket.leave(table._id, () => {
+            callback(playerId);
+            players[(socket.id).substring(8)].table = null;
+          });
+        });
+      } else {
+        callback(playerId);
+      }
     }
-  });
 
-  socket.on('chooseChair', (chair) => {
-    console.log('Chair değeri:' + chair);
-    Chair.findById(chair).then((chair) => {
-        console.log(chair.table);
-      Table.findById(chair.table).then((table) => {
-        ChairController.AddPlayerToChair(thisPlayer, table, chair, socket, io);
-      });
-    });
-  });
-
-  socket.on('logPlayers', () => {
-    console.log(players);
-  });
-
-  socket.on('returnLobby', () => {
-    if(thisPlayer != null) {
-      console.log('Returned Lobby Name: ' + thisPlayer.name);
-      TableController.RemovePlayerFromTable(thisPlayer, socket, io);
-      ChairController.RemovePlayerFromChair(thisPlayer, socket, io);
-    }
-  });
-
-
-  socket.on('disconnect', () => {
-    console.log('Player disconnected');
-    if(thisPlayer != null) {
-      delete players[thisPlayer._id];
-      console.log('Disconnected player name: ' + thisPlayer.name);
-      TableController.RemovePlayerFromTable(thisPlayer, socket, io);
-      ChairController.RemovePlayerFromChair(thisPlayer, socket, io);
-    }
   });
 
 });
-
-
-// app.get('/first', (req, res)=> {
-//   res.send('Welcome');
-// });
 
 
 server.listen(port, () => {
