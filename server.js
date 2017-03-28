@@ -8,10 +8,17 @@ const port = process.env.PORT;
 const publicPath = path.join(__dirname, './public');
 let {mongoose} = require('./database/mongoose');
 
+//Bu bölüm Loglamalar için var silinebilir
+const {Chair} = require('./game/model/chair');
+const {Player} = require('./game/model/player');
+const {HoldemMove} = require('./game/model/holdemMove');
+/////////////////////////////////////////////////////
+
 const TableController = require('./game/controller/tableController');
 const PlayerController = require('./game/controller/playerController');
 const ChairController = require('./game/controller/chairController');
 const SaloonController = require('./game/controller/saloonController');
+const HoldemController = require('./game/controller/holdemController');
 
 let app = express();
 let server = http.createServer(app);
@@ -60,6 +67,18 @@ io.on('connection', (socket) => {
     console.log(players);
   });
 
+  socket.on('logChairsAndRoles', () => {
+    Chair.find({isTaken: true}).then((chairs) => {
+
+      chairs.forEach((ch) => {
+        Player.findById(ch.player).then((player) => {
+          console.log(`Player name: ${player.name}..... chairId: ${ch._id}....... role: ${ch.role}....... subRole: ${ch.subRole}`);
+        });
+      });
+
+    });
+  });
+
   socket.on('disconnect', () => {
     if(players[socket.id] != null) {
       if(players[socket.id].chair != null && players[socket.id].table != null) {
@@ -94,7 +113,6 @@ io.on('connection', (socket) => {
   });
 
 });
-
 loginNsp.on('connection', (socket) => {
 
 
@@ -128,8 +146,6 @@ loginNsp.on('connection', (socket) => {
 
 
 });
-
-
 lobbyNsp.on('connection', (socket) => {
   console.log('Player is on Lobby');
 
@@ -165,7 +181,6 @@ lobbyNsp.on('connection', (socket) => {
 
 });
 
-
 holdemNsp.on('connection', (socket) => {
   console.log('Player is on Game Screen');
 
@@ -181,15 +196,20 @@ holdemNsp.on('connection', (socket) => {
     });
   });
 
-  socket.on('chooseChair', (playerId, chairId, callback) => {
-    ChairController.AddPlayerToChair(playerId, chairId).then((player) => {
+  socket.on('chooseChair', (playerId, chairId, inGameBalance, callback) => {
+    ChairController.AddPlayerToChair(playerId, chairId, inGameBalance).then((player) => {
+      console.log("inGameBalance: " + inGameBalance);
       players[(socket.id).substring(8)] = player;
       lobbyNsp.emit("addPlayerToChair", player._id, player.chair, player.saloon, player.table);
-      holdemNsp.to(player.table).emit("addPlayerToChair", player._id, player.name, player.balance, player.chair, player.avatar);
+      holdemNsp.to(player.table).emit("addPlayerToChair", player._id, player.name, player.inGameBalance, player.chair, player.avatar);
       callback(player.chair);
     }, (err) => {
       console.log(err);
     });
+  });
+
+  socket.on('chairChoosed', (chairId) => {
+    HoldemController.AddPlayerToHoldem(players[(socket.id).substring(8)], holdemNsp);
   });
 
   socket.on('removeChair', (playerId, chairId, callback) => {
@@ -239,7 +259,11 @@ holdemNsp.on('connection', (socket) => {
 
   });
 
+
+
 });
+
+
 
 
 server.listen(port, () => {

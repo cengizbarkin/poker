@@ -15,6 +15,20 @@ let ChairSchema = new mongoose.Schema({
   isTaken: {
     type: Boolean,
     default: false
+  },
+  role: {
+    type: String,
+    enum: ['dealer', 'bigBlind', 'smallBlind', 'none'],
+    default: 'none'
+  },
+  subRole: {
+    type: String,
+    enum: ['smallBlind', 'none'],
+    default: 'none'
+  },
+  canPlay: {
+    type: Boolean,
+    default: true
   }
 });
 

@@ -7,6 +7,7 @@ var saloonButton = jQuery('#createSaloon');
 var createSistemUser = jQuery('#createUser');
 
 var createDummyData = jQuery('#createDummyData');
+var logChairsButton = jQuery('#logChairsAndRoles');
 
 tableButton.on('click', function () {
   var tableName = jQuery('#tableName').val();
@@ -52,4 +53,9 @@ createDummyData.on('click', function() {
 
 logButton.on('click', function () {
   socket.emit('logPlayers');
+});
+
+logChairsButton.on('click', function () {
+  console.log('tıklandı');
+  socket.emit('logChairsAndRoles');
 });

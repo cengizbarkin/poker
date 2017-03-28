@@ -14,6 +14,10 @@ let PlayerSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  inGameBalance: {
+    type: Number,
+    default: 0
+  },
   role: {
     type: String,
     enum: ['system', 'admin', 'agent', 'partner', 'player'],
