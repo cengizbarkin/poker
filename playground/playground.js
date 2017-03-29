@@ -5,5 +5,8 @@ const {Chair} = require('../game/model/chair');
 const {Player} = require('../game/model/player');
 
 
-var seats = Math.floor(Math.random() * 3) + 1;
-console.log(seats);
+
+
+Player.find({}).then((players) => {
+  console.log(players.findOne(pl => pl.name == 'Asd')._id);
+})

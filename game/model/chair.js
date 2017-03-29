@@ -29,6 +29,9 @@ let ChairSchema = new mongoose.Schema({
   canPlay: {
     type: Boolean,
     default: true
+  },
+  socketId: {
+    type: String
   }
 });
 

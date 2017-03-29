@@ -114,11 +114,9 @@ io.on('connection', (socket) => {
 
 });
 loginNsp.on('connection', (socket) => {
-
-
   console.log('Player is in Login Page');
   socket.on('login', (name, password, callback) => {
-    PlayerController.Login(name, password).then((player)=>{
+    PlayerController.Login(name, password, (socket.id).substring(7)).then((player)=>{
       console.log('Player loggedin successfully: ' + player.name);
       players[(socket.id).substring(7)] = player;
       callback(JSON.stringify(player));
@@ -198,7 +196,6 @@ holdemNsp.on('connection', (socket) => {
 
   socket.on('chooseChair', (playerId, chairId, inGameBalance, callback) => {
     ChairController.AddPlayerToChair(playerId, chairId, inGameBalance).then((player) => {
-      console.log("inGameBalance: " + inGameBalance);
       players[(socket.id).substring(8)] = player;
       lobbyNsp.emit("addPlayerToChair", player._id, player.chair, player.saloon, player.table);
       holdemNsp.to(player.table).emit("addPlayerToChair", player._id, player.name, player.inGameBalance, player.chair, player.avatar);

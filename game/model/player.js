@@ -37,6 +37,13 @@ let PlayerSchema = new mongoose.Schema({
   saloon: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'saloon'
+  },
+  socketId: {
+    type: String
+  },
+  isInGame: {
+    type: Boolean,
+    default: false
   }
 });
 
