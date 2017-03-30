@@ -19,7 +19,7 @@ AddPlayerToHoldem = (player, holdemNsp) => {
           var newHoldem = new Holdem({holdemNumber: holdemNumber});
           newHoldem.save().then((holdem) => {
             holdems[table._id] = newHoldem;
-            console.log('burada oyun yoktu oluşturuldu: ' + holdems[table._id]);
+            console.log('burada oyun yoktu oluşturuldu: ');
             holdemNumber++;
             holdemNsp.to(table._id).emit('forTable', `Diğer oyuncular bekleniyor`);
           });
@@ -54,12 +54,12 @@ AddPlayerToNotStartedGame = (player, holdemNsp) => {
         console.log('Bu 2 den fazla kişilik oyun geri sayım Starter ının başlaması lazım');
         //Eğer masaya ait bir starter başlamamışsa
         if(starters[table._id] == null) {
-          var myStarter = new Starter(20, table, chairs, holdemNsp);
+          var myStarter = new Starter(10, table, chairs, holdemNsp);
           starters[table._id] = myStarter;
         } else {
           starters[table._id].stop();
           delete starters[table._id];
-          var myStarter = new Starter(20, table, chairs, holdemNsp);
+          var myStarter = new Starter(10, table, chairs, holdemNsp);
           starters[table._id] = myStarter;
         }
       }
@@ -72,25 +72,28 @@ AddPlayerToStartedGame = () => {
 }
 
 
-//Oyunu başlatmadan önce her ihtimale karşı veri tabanına bir daha sorgu çek. Çünkü o esnada birtanesi kalkmış olabilir
 StartHoldem = (table, chairs, holdemNsp) => {
-Player.find({table: table, isInGame: true}).then((players) => {
-  holdemNsp.to(table._id).emit('forTable', `Oyun Başladı:`);
-  Player.find({table: table._id}).then((players) => {
-    AssignChairRoles(chairs).then((chairs) => {
-      holdems[table._id].isStarted = true;
+  Player.find({table: table, isInGame: true}).sort({number: 1}).then((players) => {
+    holdemNsp.to(table._id).emit('forTable', `Oyun Başladı:`);
+      AssignChairRoles(chairs).then((chairs) => {
+        holdems[table._id].isStarted = true;
+        if(chairs.length == 2) {
+          holdems[table._id].dealer = chairs.find(ch => ch.role != 'dealer');
+          holdems[table._id].smallBlind = chairs.find(ch => ch.subRole != 'smallBlind');
+          holdems[table._id].bigBlind = chairs.find(ch => ch.role != 'bigBlind');
+          holdems[table._id].players.push(chairs[0].player);
+          holdems[table._id].players.push(chairs[1].player);
+        } else {
+          holdems[table._id].dealer = chairs.find(ch => ch.role != 'dealer');
+          holdems[table._id].smallBlind = chairs.find(ch => ch.role != 'smallBlind');
+          holdems[table._id].bigBlind = chairs.find(ch => ch.role != 'bigBlind');
 
-      if(chairs.length == 2) {
-        holdems[table._id].dealer = chairs.find(ch => ch.role != 'dealer');
-        holdems[table._id].smallBlind = chairs.find(ch => ch.subRole != 'smallBlind');
-        holdems[table._id].bigBlind = chairs.find(ch => ch.role != 'bigBlind');
-      } else {
-        holdems[table._id].dealer = chairs.find(ch => ch.role != 'dealer');
-        holdems[table._id].smallBlind = chairs.find(ch => ch.role != 'smallBlind');
-        holdems[table._id].bigBlind = chairs.find(ch => ch.role != 'bigBlind');
-      }
-
-      holdems[table._id].save().then((holdem) => {
+          for(var i = 0; i < chairs.length; i++) {
+            if(chairs[i].player != undefined) {
+              holdems[table._id].players.push(chairs[i].player);
+            }
+          }
+        }
 
         var suits = ['clubs', 'diamonds', 'spades', 'hearts'];
         var ranks = [ '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A' ];
@@ -103,21 +106,23 @@ Player.find({table: table, isInGame: true}).then((players) => {
         }
 
         var newCards = Shuffle(cards);
+        holdems[table._id].shuffleCards = newCards;
 
-        //Tüm oyuncuların kağıtlarını dağıt ve veri tabanına kaydet
+        for (var i = 0; i < players.length; i++) {
+          holdems[table._id].players[i].card1 = newCards[0];
+          holdems[table._id].players[i].card2 = newCards[1];
+          newCards.splice(0, 2);
+        }
 
-        console.log(cards);
-        holdemNsp.to(table._id).emit('forTable', `Roller atandı ve oyun başladı`);
-        holdemNsp.to("/holdem#" + holdems[table._id].dealer.socketId).emit('forPlayer', `Buranın sadece sana gelmesi lazım`);
+        holdems[table._id].save().then((holdem) => {
+          holdemNsp.to(table._id).emit('forTable', `Roller atandı ve oyun başladı`);
+          holdemNsp.to("/holdem#" + players[0].socketId).emit('forPlayer', `Sen Dealersın`);
+          holdemNsp.to("/holdem#" + players[1].socketId).emit('forPlayer', `Sen Big Blind sın`);
 
-
+        });
 
       });
-
-    });
-  });
-})
-
+  })
 }
 
 AssignChairRoles = (chairs) => {
@@ -150,6 +155,8 @@ AssignChairRoles = (chairs) => {
     }
   });
 }
+
+
 
 function Starter(t, table, chairs, holdemNsp) {
     var timerObj = setInterval(() => {

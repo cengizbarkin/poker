@@ -37,6 +37,7 @@ AddPlayerToChair = (playerId, chairId, inGameBalance) => {
                   player.balance -= holdemMove.value;
                   player.inGameBalance = holdemMove.value;
                   player.isInGame = true;
+                  player.chairNumber = chair.number;
                   player.save().then((player) => {
                     chair.save().then((chair) => {
                       resolve(player);
@@ -64,6 +65,7 @@ RemovePlayerFromChair = (player) => {
         chair.socketId = null;
         chair.save().then((chair) => {
           player.chair = null;
+          player.chairNumber = null;
           player.isInGame = false;
           player.balance += player.inGameBalance;
           player.inGameBalance = 0;

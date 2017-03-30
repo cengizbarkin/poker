@@ -4,7 +4,6 @@ const {Player} = require('../model/player');
 const {Saloon} = require('../model/saloon');
 
 const ChairController = require('../controller/chairController');
-var shortid = require('shortid');
 var tables = [];
 
 CreateTable = (name, numberOfPlayers, saloonName, minStake, minBuyin) => {
