@@ -26,8 +26,8 @@ AddPlayerToChair = (playerId, chairId, inGameBalance) => {
             reject('Not enough cash');
           } else {
             if(player.chair == null && chair.isTaken == false) {
-              chair.role = 'none';
-              chair.subRole = 'none';
+              chair.role = null;
+              chair.subRole = null;
               chair.player = player._id;
               chair.socketId = player.socketId;
               chair.isTaken = true;
@@ -58,8 +58,8 @@ RemovePlayerFromChair = (player) => {
   return new Promise ((resolve, reject) => {
     if(player.chair != null) {
       Chair.findById(player.chair).then((chair) => {
-        chair.role = 'none';
-        chair.subRole = 'none';
+        chair.role = null;
+        chair.subRole = null;
         chair.isTaken = false;
         chair.player = null;
         chair.socketId = null;
@@ -105,112 +105,10 @@ GetChairsInTable = (tableId) => {
 }
 
 
-AssignChairRoles = (chair) => {
-  return new Promise((resolve, reject) => {
-    Chair.find({table: chair.table, isTaken: true}).sort({number: 1}).then((chairs) => {
-      if(chairs.length == 1) {
-        chairs[0].role = 'dealer';
-        chairs[0].subRole = 'smallBlind';
-        chairs[0].save().then((chairs) => {
-        resolve(chairs);
-        });
-      }
-      if(chairs.length == 2) {
-        var other = chairs.filter(ch => ch.role != 'dealer');
-        other[0].role = 'bigBlind';
-        other[0].save().then((chair) => {
-          resolve(chairs);
-        });
-      }
-      if(chairs.length == 3) {
-        var dealer = chairs.filter(ch => ch.role == 'dealer');
-        var dummyChairsArray = [];
-        var index = dealer[0].number;
-        var dummyLength = chairs.length;
-
-        Player.findOne({chair: dealer[0]._id}).then((player) => {
-        console.log('Şuan dealer olan: ' + player.name);
-        });
-
-
-        for (var i = index; i < dummyLength; i++) {
-            dummyChairsArray.push(chairs[i]);
-        }
-        for (var i = 0; i < index; i++) {
-          dummyChairsArray.push(chairs[i]);
-        }
-
-        dummyChairsArray[0].role = 'dealer';
-        dummyChairsArray[0].subRolerole = 'none';
-        dummyChairsArray[1].role = 'smallBlind';
-        dummyChairsArray[1].subRolerole = 'none';
-        dummyChairsArray[2].role = 'bigBlind';
-        dummyChairsArray[2].subRolerole = 'none';
-
-        dummyChairsArray[0].save().then((chair) => {
-          dummyChairsArray[1].save().then((chair) => {
-            dummyChairsArray[2].save().then((chair) => {
-              resolve(chairs);
-            });
-          });
-        });
-      }
-      if(chairs.length > 3) {
-        var dealer = chairs.filter(ch => ch.role == 'dealer');
-        var dummyChairsArray = [];
-        var index = dealer[0].number;
-        var dummyLength = chairs.length;
-        for (var i = index; i < dummyLength; i++) {
-            dummyChairsArray.push(chairs[i]);
-        }
-        for (var i = 0; i < index; i++) {
-          dummyChairsArray.push(chairs[i]);
-        }
-        for (var i = 3; i < dummyChairsArray.length; i++) {
-          dummyChairsArray[i].role = 'none';
-          dummyChairsArray[i].subRole = 'none';
-          dummyChairsArray[i].save((chair) => {
-            if(i == dummyChairsArray - 1) {
-              resolve(chairs);
-            }
-          });
-        }
-      }
-    });
-  });
-}
 
 
 
-AssignChairRolesWhenLeave = (chair) => {
-  return new Promise((resolve, reject) => {
-    Chair.find({table: chair.table}).sort({number: 1}).then((chairs) => {
-      var dealer = chairs.filter(ch => ch.role == 'dealer');
-      if(dealer[0] != undefined) {
-        var dummyChairsArray = [];
-        var index = dealer[0].number;
-        var dummyLength = chairs.length;
-        for (var i = index; i < dummyLength; i++) {
-          if(chairs[i].isTaken) {
-            dummyChairsArray.push(chairs[i]);
-          }
-        }
-        for (var i = 0; i < index; i++) {
-          if(chairs[i].isTaken) {
-            dummyChairsArray.push(chairs[i]);
-          }
-        }
-        OrderChairRolers(dummyChairsArray).then((chairs) => {
-          resolve(chairs);
-        });
-      } else {
-        OrderChairRolers(chairs).then((newChairs) => {
-          resolve(newChairs);
-        });
-      }
-    });
-  });
-}
+
 
 
 OrderChairRolers = (chairs) => {
@@ -233,11 +131,11 @@ OrderChairRolers = (chairs) => {
       });
     } else if(chairs.length == 3) {
       chairs[0].role = 'dealer';
-      chairs[0].subRole = 'none';
+      chairs[0].subRole = null;
       chairs[1].role = 'smallBlind';
-      chairs[1].subRole = 'none';
+      chairs[1].subRole = null;
       chairs[2].role = 'bigBlind';
-      chairs[2].subRole = 'none';
+      chairs[2].subRole = null;
       chairs[0].save().then((chair) => {
         chairs[1].save().then((chair) => {
           chairs[2].save().then((chair) => {
@@ -247,14 +145,14 @@ OrderChairRolers = (chairs) => {
       });
     } else if(chairs.length > 3) {
       chairs[0].role = 'dealer';
-      chairs[0].subRole = 'none';
+      chairs[0].subRole = null;
       chairs[1].role = 'smallBlind';
-      chairs[1].subRole = 'none';
+      chairs[1].subRole = null;
       chairs[2].role = 'bigBlind';
-      chairs[2].subRole = 'none';
+      chairs[2].subRole = null;
       for (var i = 3; i < chairs.length; i++) {
-        chairs[i].role = 'none';
-        chairs[i].subRole = 'none';
+        chairs[i].role = null;
+        chairs[i].subRole = null;
       }
       chairs.forEach((ch, idx, chairs) => {
         ch.save().then((newChair) => {

@@ -33,6 +33,7 @@ app.use(bodyParser.json());
 
 var players = [];
 
+
 io.on('connection', (socket) => {
 
   players[socket.id] = null;
@@ -72,11 +73,15 @@ io.on('connection', (socket) => {
 
       chairs.forEach((ch) => {
         Player.findById(ch.player).then((player) => {
-          console.log(`Player name: ${player.name}..... chairId: ${ch._id}....... role: ${ch.role}....... subRole: ${ch.subRole}`);
+          console.log(`Player name: ${player.name}..... chairId: ${ch._id}....... role: ${ch.role}....... subRole: ${ch.subRole}...... isMyTurn: ${ch.isMyTurn}`);
         });
       });
 
     });
+  });
+
+  socket.on('logHoldems', () => {
+    HoldemController.LogHoldems();
   });
 
   socket.on('disconnect', () => {
@@ -180,6 +185,7 @@ lobbyNsp.on('connection', (socket) => {
 });
 
 holdemNsp.on('connection', (socket) => {
+
   console.log('Player is on Game Screen');
 
   socket.on('askForHoldemDetails', (tableId, callback) => {
@@ -206,7 +212,7 @@ holdemNsp.on('connection', (socket) => {
   });
 
   socket.on('chairChoosed', (chairId) => {
-    HoldemController.AddPlayerToHoldem(players[(socket.id).substring(8)], holdemNsp);
+    HoldemController.AddPlayerToHoldem(players[(socket.id).substring(8)], holdemNsp, socket);
   });
 
   socket.on('removeChair', (playerId, chairId, callback) => {
@@ -258,10 +264,9 @@ holdemNsp.on('connection', (socket) => {
 
 
 
+
+
 });
-
-
-
 
 server.listen(port, () => {
   console.log(`server is up on ${port}`);

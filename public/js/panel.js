@@ -3,6 +3,8 @@ var socket = io();
 var tableButton = jQuery('#createTable');
 var logButton = jQuery('#logPlayers');
 
+var logHoldems = jQuery('#logHoldems');
+
 var saloonButton = jQuery('#createSaloon');
 var createSistemUser = jQuery('#createUser');
 
@@ -56,6 +58,9 @@ logButton.on('click', function () {
 });
 
 logChairsButton.on('click', function () {
-  console.log('tıklandı');
   socket.emit('logChairsAndRoles');
+});
+
+logHoldems.on('click', function() {
+  socket.emit('logHoldems');
 });

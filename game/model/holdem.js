@@ -42,7 +42,19 @@ let HoldemSchema = new mongoose.Schema({
     card2: {
       type: String
     }
-  }]
+  }],
+  whoseTurn: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'chair'
+  },
+  turnIsOver: {
+    type: Boolean,
+    default: false
+  },
+  turnCountdown: {
+    type: Number,
+    default: 20
+  }
 });
 
 let Holdem = mongoose.model('holdem', HoldemSchema);

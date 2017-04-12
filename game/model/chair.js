@@ -18,13 +18,13 @@ let ChairSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['dealer', 'bigBlind', 'smallBlind', 'none'],
-    default: 'none'
+    enum: ['dealer', 'bigBlind', 'smallBlind', null],
+    default: null
   },
   subRole: {
     type: String,
-    enum: ['smallBlind', 'none'],
-    default: 'none'
+    enum: ['smallBlind', null],
+    default: null
   },
   canPlay: {
     type: Boolean,
@@ -32,6 +32,10 @@ let ChairSchema = new mongoose.Schema({
   },
   socketId: {
     type: String
+  },
+  isMyTurn: {
+    type: Boolean,
+    default: false
   }
 });
 
