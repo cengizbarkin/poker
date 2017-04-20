@@ -1,6 +1,9 @@
 let {mongoose} = require('../../database/mongoose');
 
 let holdemMoveSchema = new mongoose.Schema({
+  moveNumber: {
+    type: Number
+  },
   moveType: {
     type: String,
     enum: ['check', 'raise', 'fold', 'allIn', 'inGameBalance']

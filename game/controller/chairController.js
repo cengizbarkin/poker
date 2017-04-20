@@ -61,6 +61,7 @@ RemovePlayerFromChair = (player) => {
         chair.role = null;
         chair.subRole = null;
         chair.isTaken = false;
+        chair.isMyTurn = false;
         chair.player = null;
         chair.socketId = null;
         chair.save().then((chair) => {
@@ -68,6 +69,7 @@ RemovePlayerFromChair = (player) => {
           player.chairNumber = null;
           player.isInGame = false;
           player.balance += player.inGameBalance;
+          player.isMyTurn = false;
           player.inGameBalance = 0;
           player.save().then((player) => {
             resolve(player);

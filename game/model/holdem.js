@@ -15,6 +15,14 @@ let HoldemSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'table'
   },
+  maxAmounInTheGame: {
+    type: Number,
+    default: 0
+  },
+  minAmountInTheGame: {
+    type: Number,
+    default: 0
+  },
   dealer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'chair'
@@ -54,6 +62,17 @@ let HoldemSchema = new mongoose.Schema({
   turnCountdown: {
     type: Number,
     default: 20
+  },
+  turnType: {
+      type: String,
+      enum: ['preFlop', 'flop', 'turn', 'river'],
+      default: 'preFlop'
+  },
+  smallBlindAmount: {
+    type: Number
+  },
+  bigBlindAmount: {
+    type: Number
   }
 });
 

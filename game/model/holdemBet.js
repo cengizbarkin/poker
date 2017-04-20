@@ -7,9 +7,12 @@ let holdemBetSchema = new mongoose.Schema({
   owner: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'holdemMove'
+  },
+  holdem: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'holdem'
   }
 });
-
 
 let HoldemBet = mongoose.model('holdemBet', holdemBetSchema);
 

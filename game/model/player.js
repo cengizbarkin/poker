@@ -47,6 +47,10 @@ let PlayerSchema = new mongoose.Schema({
   isInGame: {
     type: Boolean,
     default: false
+  },
+  isMyTurn: {
+    type: Boolean,
+    default: false
   }
 });
 

@@ -185,9 +185,7 @@ lobbyNsp.on('connection', (socket) => {
 });
 
 holdemNsp.on('connection', (socket) => {
-
   console.log('Player is on Game Screen');
-
   socket.on('askForHoldemDetails', (tableId, callback) => {
     TableController.GetTableDetails(tableId).then((table) => {
       ChairController.GetChairsInTable(tableId).then((chairs) => {
@@ -199,7 +197,6 @@ holdemNsp.on('connection', (socket) => {
       });
     });
   });
-
   socket.on('chooseChair', (playerId, chairId, inGameBalance, callback) => {
     ChairController.AddPlayerToChair(playerId, chairId, inGameBalance).then((player) => {
       players[(socket.id).substring(8)] = player;
@@ -210,11 +207,9 @@ holdemNsp.on('connection', (socket) => {
       console.log(err);
     });
   });
-
   socket.on('chairChoosed', (chairId) => {
     HoldemController.AddPlayerToHoldem(players[(socket.id).substring(8)], holdemNsp, socket);
   });
-
   socket.on('removeChair', (playerId, chairId, callback) => {
     if(players[(socket.id).substring(8)] != null) {
       ChairController.RemovePlayerFromChair(players[(socket.id).substring(8)]).then((player) => {
@@ -227,7 +222,6 @@ holdemNsp.on('connection', (socket) => {
       });
     }
   });
-
   socket.on('returnLobby', (playerId, callback) => {
     if(players[(socket.id).substring(8)] != null) {
       if(players[(socket.id).substring(8)].chair != null && players[(socket.id).substring(8)].table != null) {
@@ -262,8 +256,10 @@ holdemNsp.on('connection', (socket) => {
 
   });
 
-
-
+  socket.on('holdemMove', (moveType, value, tableId, playerId, holdemId) => {
+    console.log('Player make a move');
+    HoldemController.PlayerResponded(moveType, value, tableId, playerId, holdemNsp, holdemId);
+  });
 
 
 });

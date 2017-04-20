@@ -8,14 +8,23 @@ const {Shuffle} = require('../utils/shuffle');
 var holdems = [];
 var starters = [];
 var responds = [];
+//Player ayrıldığı zaman bu array'i güncelle
+var playersInTheGame = [[]];
+//Chair boşaltıldığı zaman bu Array'i güncelle
+var chairsInTheGame = [[]];
+//Table'daki oyun bitince bu arrayi güncelle
+var tablesInTheGame = [];
+
 var holdemNumber = 0;
 
 
 AddPlayerToHoldem = (player, holdemNsp, socket) => {
   Table.findById(player.table).then((table) => {
+    tablesInTheGame[table._id] = table;
     Chair.find({table: table, isTaken: true}).sort({number: 1}).then((chairs) => {
+      chairsInTheGame[table._id] = chairs;
       if(holdems[player.table] == null) {
-        var newHoldem = new Holdem({holdemNumber: holdemNumber});
+        var newHoldem = new Holdem({holdemNumber: holdemNumber, bigBlindAmount: table.maxStake, smallBlindAmount: table.minStake});
           newHoldem.save().then((holdem) => {
             holdems[table._id] = newHoldem;
             console.log('burada oyun yoktu oluşturuldu: ');
@@ -61,7 +70,6 @@ AddPlayerToNotStartedGame = (table, chairs, player, holdemNsp, socket) => {
 }
 
 
-
 function Starter(t, table, holdemNsp, socket) {
     var timerObj = setInterval(() => {
       t--;
@@ -84,7 +92,6 @@ function Starter(t, table, holdemNsp, socket) {
     }
 }
 
-
 AddPlayerToStartedGame = () => {
 
 }
@@ -92,10 +99,13 @@ AddPlayerToStartedGame = () => {
 
 StartHoldem = (table, holdemNsp, socket) => {
   Player.find({table: table, isInGame: true}).sort({number: 1}).then((players) => {
+    playersInTheGame[table._id] = players;
     holdemNsp.to(table._id).emit('forTable', `Oyun Başladı:`);
       AssignChairRoles(table, holdemNsp).then((chairs) => {
         table.isGamePlaying = true;
+        table.turnType = 'preFlop';
           table.save().then((table) => {
+            tablesInTheGame[table._id] = table;
             holdems[table._id].isStarted = true;
             var suits = ['c', 'd', 'h', 's'];
             var ranks = [ '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A' ];
@@ -118,14 +128,16 @@ StartHoldem = (table, holdemNsp, socket) => {
             }
 
             holdems[table._id].save().then((holdem) => {
+              MaxAndMinInGameBalances(table._id).then((values) =>{
                 players.forEach((pl) => {
                   var playerInHoldem = holdems[table._id].players.find(plHoldem => plHoldem._id.toString() == pl._id.toString());
                   var playerInDB = players.find(plDB => plDB._id.toString() == playerInHoldem._id.toString());
-                  holdemNsp.to("/holdem#" + pl.socketId).emit('gameStarted', playerInHoldem.card1, playerInHoldem.card2, playerInDB.chair);
+                  holdemNsp.to("/holdem#" + pl.socketId).emit('gameStarted', playerInHoldem.card1, playerInHoldem.card2, playerInDB.chair, values.max, values.min, holdem._id, holdem.smallBlindAmount, holdem.bigBlindAmount);
                 });
                 holdemNsp.to(table._id).emit('totalPlayers', players.length);
-                var myGetRespondFromPlayer = new GetRespondFromPlayer(20, holdemNsp, table, players, chairs);
+                var myGetRespondFromPlayer = new GetRespondFromPlayer(20, holdemNsp, table, players, chairs, holdem._id);
                 responds[table._id] = myGetRespondFromPlayer;
+              });
             });
           });
 
@@ -142,6 +154,10 @@ AssignChairRoles = (table, holdemNsp) => {
         chairs[1].role = 'bigBlind';
         chairs[1].subRole = null;
         chairs[0].isMyTurn = true;
+        Player.findOne({chair: chairs[0]}).then((player) => {
+          player.isMyTurn = chairs[0].isMyTurn;
+          player.save();
+        });
         holdems[table._id].dealer = chairs[0];
         holdems[table._id].smallBlind = chairs[0];
         holdems[table._id].bigBlind = chairs[1];
@@ -150,6 +166,7 @@ AssignChairRoles = (table, holdemNsp) => {
         holdems[table._id].save().then((holdem) => {
           chairs[0].save().then((chair) => {
             chairs[1].save().then((chair) => {
+                chairsInTheGame[table._id] = chairs;
                 resolve(chairs);
               });
           });
@@ -162,6 +179,10 @@ AssignChairRoles = (table, holdemNsp) => {
         chairs[2].role = 'bigBlind';
         chairs[2].subRole = null;
         chairs[0].isMyTurn = true;
+        Player.findOne({chair: chairs[0]}).then((player) => {
+          player.isMyTurn = chairs[0].isMyTurn;
+          player.save();
+        });
         holdems[table._id].dealer = chairs[0];
         holdems[table._id].smallBlind = chairs[1];
         holdems[table._id].bigBlind = chairs[2];
@@ -172,6 +193,7 @@ AssignChairRoles = (table, holdemNsp) => {
           chairs[0].save().then((chair) => {
             chairs[1].save().then((chair) => {
               chairs[2].save().then((chair) => {
+                chairsInTheGame[table._id] = chairs;
                 resolve(chairs);
               });
             });
@@ -183,34 +205,64 @@ AssignChairRoles = (table, holdemNsp) => {
             ch.role = 'dealer';
             ch.subRole = null;
             ch.isMyTurn = false;
+
+            Player.findOne({chair: ch}).then((player) => {
+              player.isMyTurn = ch.isMyTurn;
+              player.save();
+            });
+
             holdems[table._id].dealer = ch;
             holdems[table._id].players.push(ch.player);
           } else if(idx == 1) {
             ch.role = 'smallBlind';
             ch.subRole = null;
             ch.isMyTurn = false;
+
+            Player.findOne({chair: ch}).then((player) => {
+              player.isMyTurn = ch.isMyTurn;
+              player.save();
+            });
+
             holdems[table._id].smallBlind = ch;
             holdems[table._id].players.push(ch.player);
           } else if(idx == 2) {
             ch.role = 'bigBlind';
             ch.subRole = null;
             ch.isMyTurn = false;
+
+            Player.findOne({chair: ch}).then((player) => {
+              player.isMyTurn = ch.isMyTurn;
+              player.save();
+            });
+
             holdems[table._id].bigBlind = ch;
             holdems[table._id].players.push(ch.player);
           } else if(idx == 3) {
             ch.role = null;
             ch.subRole = null;
             ch.isMyTurn = true;
+
+            Player.findOne({chair: ch}).then((player) => {
+              player.isMyTurn = ch.isMyTurn;
+              player.save();
+            });
+
             holdems[table._id].players.push(ch.player);
           } else {
             ch.role = null;
             ch.subRole = null;
             ch.isMyTurn = false;
+            Player.findOne({chair: ch}).then((player) => {
+              player.isMyTurn = ch.isMyTurn;
+              player.save();
+            });
+
             holdems[table._id].players.push(ch.player);
           }
           ch.save().then((newChair) => {
             if(idx == chairs.length - 1) {
               holdems[table._id].save().then((holdem) => {
+                chairsInTheGame[table._id] = chairs;
                 resolve(chairs);
               });
             }
@@ -230,40 +282,105 @@ AssignChairRoles = (table, holdemNsp) => {
   });
 }
 
-function GetRespondFromPlayer(t, holdemNsp, table, players, chairs) {
 
-  var timerObj = setInterval(() => {
-    t--;
-    holdemNsp.to(table._id).emit('timer', t);
-    if(t == 0) {
-      ChangeTurn(players, holdemNsp, table, chairs);
-      this.stop();
-      if(responds[table._id] != null) {
-        delete responds[table._id];
+function GetRespondFromPlayer(t, holdemNsp, table, players, chairs, holdemId) {
+
+  Holdem.findById(holdemId).then((holdem) => {
+
+      var turnType = holdem.turnType;
+      var whoseTurnChair = chairs.find(ch => ch.isMyTurn == true);
+      var whoseTurn = players.find(pl => pl.chair.toString() == whoseTurnChair._id.toString());
+
+      console.log('Şuan sırası olan kişi: ' + whoseTurn.name);
+
+
+      //Burada TurnType'a göre bir Switch Case statement olacak, ve kullanıcıya hangi hareketlerde bulunabileceğini söyleyecek
+      switch(turnType) {
+        case "preFlop":
+          //Kullanıcı pre-flop'ta iken eğer BilBlind'ise Call diyebilir, fold diyebilir bahis artırabilir
+          //Eğer smallBlind ise Call diyebilir Fold diyebilir bahis artırabilir
+          //Eğer normal kullanıcı ise Call diyebilir, fold diyebilir bahis artırabilir
+          //Her halükarda BB kadar para aktaracaklarından dolayı Call demek zorundalar.
+          //En düşük bahis artırma miktarı BB nin 2 katı kadar
+          //En yüksek bahis artırma miktarı Masadaki FOLD dememişler içerisindeki inGameBalance'ı en düşük olan kişi kadar.
+          //Eğer herhangi birisi bahis artırma yaparsa bu değerler değişecektir
+          //Turun bitmesi için İlk konuşan kişiye tekrar sıra gelmesi lazım
+          //Eğer 1 kişi bahis artırma yaptıysa İlk konuşan kişinin yerine o geçer
+
+
+
+          break;
+        case "flop":
+          //
+          break;
+        case "turn":
+          //
+          break;
+        case "river":
+          //
+          break;
+        default:
+          //
       }
+
+
+      var timerObj = setInterval(() => {
+        t--;
+        holdemNsp.to(table._id).emit('timer', t);
+        if(t == 0) {
+          this.stop();
+          if(responds[table._id] != null) {
+            delete responds[table._id];
+          }
+          ChangeTurn(players, holdemNsp, table, chairs, holdemId);
+        }
+      }, 1000);
+      this.stop = function() {
+          if (timerObj) {
+              clearInterval(timerObj);
+              timerObj = null;
+          }
+          return this;
+      }
+
+    });
+
+
+}
+
+function PlayerResponded(moveType, value, tableId, playerId, holdemNsp, holdemId) {
+  if(tablesInTheGame[tableId].isGamePlaying == true) {
+    var respondedTable = tablesInTheGame[tableId];
+    var respondedChairs = chairsInTheGame[tableId];
+    var playersInSameGame = playersInTheGame[tableId];
+    var canITalkChair = respondedChairs.find(ch => ch.isMyTurn == true);
+    var canITalkPlayer = playersInSameGame.find(pl => pl.chair.toString() == canITalkChair._id.toString());
+
+    if(canITalkChair.player.toString() == playerId) {
+      if(responds[tableId] != null) {
+        responds[tableId].stop();
+        delete responds[tableId];
+
+        //Burası daha yazılmadı
+        //holdemNsp.to(tableId).emit('playerResponded', JSON.stringify(ChairsToSend), firstTurn._id);
+
+        ChangeTurn(playersInTheGame[tableId], holdemNsp, respondedTable, respondedChairs, holdemId);
+      }
+    } else {
+      console.log('Its not your turn');
     }
-  }, 1000);
-  this.stop = function() {
-      if (timerObj) {
-          clearInterval(timerObj);
-          timerObj = null;
-      }
-      return this;
+  } else {
+    console.log('Game is not started yet');
   }
 }
 
-
-function ChangeTurn(players, holdemNsp, table, chairs) {
-
+function ChangeTurn(players, holdemNsp, table, chairs, holdemId) {
   var turn = chairs.find(ch => ch.isMyTurn == true);
-
   var nextTurn;
   var index = 0;
   var dummyLength = chairs.length;
   var dummyChairsArray = [];
-
   dummyChairsArray.push(turn);
-
   var isCountinue=false;
   for (var i = 0; i < dummyLength; i++) {
     if(chairs[i] != null) {
@@ -275,7 +392,6 @@ function ChangeTurn(players, holdemNsp, table, chairs) {
       }
     }
   }
-
   for (var i = 0; i < index; i++) {
     if(chairs[i] != null) {
       if (chairs[i].number!=turn.number) {
@@ -283,7 +399,6 @@ function ChangeTurn(players, holdemNsp, table, chairs) {
       }
     }
   }
-
   for (var i = 0; i < dummyChairsArray.length; i++) {
     if(i == 0) {
       dummyChairsArray[i].isMyTurn = false;
@@ -296,14 +411,46 @@ function ChangeTurn(players, holdemNsp, table, chairs) {
     }
 
     dummyChairsArray[i].save().then((chair) => {
-      //
+      Player.findOne({chair: chair}).then((player) => {
+        player.isMyTurn = chair.isMyTurn;
+        player.save();
+        ////
+      });
 
     });
   }
 
-  var myGetRespondFromPlayer = new GetRespondFromPlayer(20, holdemNsp, table, players, dummyChairsArray);
+  var myGetRespondFromPlayer = new GetRespondFromPlayer(20, holdemNsp, table, players, dummyChairsArray, holdemId);
   responds[table._id] = myGetRespondFromPlayer;
 }
+
+
+
+function MaxAndMinInGameBalances(tableId) {
+  var valuesArray = [];
+  var values = {
+    max: 0,
+    min: 0
+  };
+  return new Promise((resolve, reject) => {
+    Player.find({table: tableId, isInGame: true}).then((players) => {
+      players.forEach((pl) => {
+        valuesArray.push(pl.inGameBalance);
+      });
+      var maxAmounInTheGame = Math.max.apply(null, valuesArray);
+      var minAmountInTheGame = Math.min.apply(null, valuesArray);
+      values.max = maxAmounInTheGame;
+      values.min = minAmountInTheGame;
+      holdems[tableId].maxAmounInTheGame = maxAmounInTheGame;
+      holdems[tableId].minAmountInTheGame = minAmountInTheGame;
+      holdems[tableId].save().then((holdem) => {
+          resolve(values);
+      });
+
+    });
+  });
+}
+
 
 LogHoldems = () => {
   Table.find({isGamePlaying: true}).then((tables) => {
@@ -325,8 +472,6 @@ LogHoldems = () => {
                 kaydedilen Card2 ${playerInTheGame.card2}`);
             });
           });
-
-
         });
       }
     }
@@ -337,5 +482,6 @@ LogHoldems = () => {
 module.exports = {
   AddPlayerToHoldem,
   StartHoldem,
-  LogHoldems
+  LogHoldems,
+  PlayerResponded
 }

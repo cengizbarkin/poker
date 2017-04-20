@@ -12,9 +12,7 @@ let SaloonSchema = new mongoose.Schema({
   }
 });
 
-
 let Saloon = mongoose.model('saloon', SaloonSchema);
-
 
 module.exports = {
   Saloon
