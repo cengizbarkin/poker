@@ -6,19 +6,11 @@ let holdemMoveSchema = new mongoose.Schema({
   },
   moveType: {
     type: String,
-    enum: ['check', 'raise', 'fold', 'allIn', 'inGameBalance']
+    enum: ['check', 'call', 'raise', 'fold', 'allIn', 'AutoCheck', 'AutoFold', 'inGameBalance']
   },
   value: {
     type: Number,
     default: 0
-  },
-  isSmallBlind: {
-    type: Boolean,
-    default: null
-  },
-  isBigBlind: {
-    type: Boolean,
-    default: null
   },
   player: {
     type: mongoose.Schema.Types.ObjectId,

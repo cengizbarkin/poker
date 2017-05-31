@@ -1,4 +1,5 @@
 const {Player} = require('../model/player');
+const {BalanceMove} = require('../model/balanceMove');
 
 Login = (name, password, socketId) => {
   return new Promise((resolve, reject) => {
@@ -26,9 +27,14 @@ Signup = (name, password, avatar) => {
       if(player) {
         reject('error2');
       } else {
-        let player = new Player({name: name, password: password, avatar: avatar, table: null, chair: null, balance: 1000});
+        let bonus = new BalanceMove({value: 1000, type: 'bonus', player: null, holdem: null});
+        let player = new Player({name: name, password: password, avatar: avatar, table: null, chair: null, balance: null});
+        bonus.player = player;
+        player.balance = bonus.value;
         player.save().then((player) => {
-          resolve(player);
+          bonus.save().then((bonus) => {
+            resolve(player);
+          });
         });
       }
     });

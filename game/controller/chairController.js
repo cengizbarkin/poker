@@ -34,9 +34,10 @@ AddPlayerToChair = (playerId, chairId, inGameBalance) => {
               player.chair = chair._id;
               var newHoldemMove = new HoldemMove({moveType: 'inGameBalance', value: inGameBalance, player: playerId, explanation: `ID'si ${playerId} olan kullanıcı chair'e ${inGameBalance} miktar bakiye ile oturdu`});
               newHoldemMove.save().then((holdemMove) => {
+                  player.totalBetAmount = 0;
+                  player.lastMoveType = null;
                   player.balance -= holdemMove.value;
                   player.inGameBalance = holdemMove.value;
-                  player.isInGame = true;
                   player.chairNumber = chair.number;
                   player.save().then((player) => {
                     chair.save().then((chair) => {
@@ -54,31 +55,41 @@ AddPlayerToChair = (playerId, chairId, inGameBalance) => {
   });
 }
 
-RemovePlayerFromChair = (player) => {
+RemovePlayerFromChair = (playerToCall) => {
   return new Promise ((resolve, reject) => {
-    if(player.chair != null) {
-      Chair.findById(player.chair).then((chair) => {
-        chair.role = null;
-        chair.subRole = null;
-        chair.isTaken = false;
-        chair.isMyTurn = false;
-        chair.player = null;
-        chair.socketId = null;
-        chair.save().then((chair) => {
-          player.chair = null;
-          player.chairNumber = null;
-          player.isInGame = false;
-          player.balance += player.inGameBalance;
-          player.isMyTurn = false;
-          player.inGameBalance = 0;
-          player.save().then((player) => {
-            resolve(player);
+      Player.findById(playerToCall._id).then((player) => {
+        if(player.chair != null) {
+        Chair.findById(player.chair).then((chair) => {
+          chair.role = null;
+          chair.subRole = null;
+          chair.isTaken = false;
+          chair.isMyTurn = false;
+          chair.player = null;
+          chair.socketId = null;
+          chair.save().then((chair) => {
+            player.chair = null;
+            player.chairNumber = null;
+            player.table = null;
+            player.saloon = null;
+            player.isInGame = false;
+            player.balance += player.inGameBalance;
+            player.isMyTurn = false;
+            player.isAllIn = false;
+            player.isFold = false;
+            player.lastBetAmount = 0;
+            player.inGameBalance = 0;
+            player.totalBetAmount = 0;
+            player.holdem = null;
+            player.lastMoveType = null;
+            player.save().then((player) => {
+              resolve(player);
+            });
           });
         });
-      });
-    } else {
-      reject('Player does not have a chair');
-    }
+      } else {
+        reject('Player does not have a chair');
+      }
+    });
   });
 }
 

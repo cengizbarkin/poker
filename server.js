@@ -33,7 +33,6 @@ app.use(bodyParser.json());
 
 var players = [];
 
-
 io.on('connection', (socket) => {
 
   players[socket.id] = null;
@@ -254,10 +253,9 @@ holdemNsp.on('connection', (socket) => {
       }
     }
 
-  });
+    });
 
   socket.on('holdemMove', (moveType, value, tableId, playerId, holdemId) => {
-    console.log('Player make a move');
     HoldemController.PlayerResponded(moveType, value, tableId, playerId, holdemNsp, holdemId);
   });
 

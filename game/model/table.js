@@ -3,7 +3,6 @@ var shortid = require('shortid');
 const {PlayerSchema} = require('./player');
 const {ChairSchema} = require('./chair');
 
-
 let TableSchema = new mongoose.Schema({
   name: {
     type: String
@@ -27,9 +26,11 @@ let TableSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  //smallBlind ile aynı
   minStake: {
     type: Number
   },
+  //BigBlind ile aynı
   maxStake: {
     type: Number
   },
@@ -38,11 +39,14 @@ let TableSchema = new mongoose.Schema({
   },
   maxBuyin: {
     type: Number
+  },
+  turnCountdown: {
+    type: Number,
+    default: 20
   }
 });
 
 let Table = mongoose.model('table', TableSchema);
-
 
 module.exports = {
   Table
