@@ -40,6 +40,10 @@ let TableSchema = new mongoose.Schema({
   maxBuyin: {
     type: Number
   },
+  commissionPercentage: {
+    type: Number,
+    default: 20
+  },
   turnCountdown: {
     type: Number,
     default: 20

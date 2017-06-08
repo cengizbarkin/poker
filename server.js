@@ -38,7 +38,7 @@ io.on('connection', (socket) => {
   players[socket.id] = null;
 
   socket.on('createTable', (tableProps) => {
-    TableController.CreateTable(tableProps.tableName, tableProps.numberOfPlayers, tableProps.saloonName, tableProps.minStake).then((table) => {
+    TableController.CreateTable(tableProps.tableName, tableProps.numberOfPlayers, tableProps.saloonName, tableProps.minStake, tableProps.minBuyin).then((table) => {
       SaloonController.AddTableToSaloon(table._id, tableProps.saloonName);
     });
   });
@@ -81,6 +81,10 @@ io.on('connection', (socket) => {
 
   socket.on('logHoldems', () => {
     HoldemController.LogHoldems();
+  });
+
+  socket.on('logHoldemValues', () => {
+    HoldemController.LogHoldemValues();
   });
 
   socket.on('disconnect', () => {

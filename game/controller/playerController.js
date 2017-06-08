@@ -29,6 +29,7 @@ Signup = (name, password, avatar) => {
       } else {
         let bonus = new BalanceMove({value: 1000, type: 'bonus', player: null, holdem: null});
         let player = new Player({name: name, password: password, avatar: avatar, table: null, chair: null, balance: null});
+        bonus.explanation = `${player.name} isimli kullanıcıya deneme amaçlı ${bonus.value} kadar bonus yüklenmiştir`;
         bonus.player = player;
         player.balance = bonus.value;
         player.save().then((player) => {

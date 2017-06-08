@@ -14,7 +14,7 @@ let balanceMoveSchema = new mongoose.Schema({
   },
   moveType: {
     type: String,
-    enum: ['check', 'call', 'raise', 'fold', 'allIn', 'AutoCheck', 'AutoFold', null],
+    enum: ['check', 'call', 'raise', 'fold', 'allIn', 'AutoCheck', 'AutoFold', 'smallBlind', 'bigBlind', null],
     default: null
   },
   player: {

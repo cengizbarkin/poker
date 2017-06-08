@@ -4,6 +4,7 @@ var tableButton = jQuery('#createTable');
 var logButton = jQuery('#logPlayers');
 
 var logHoldems = jQuery('#logHoldems');
+var logHoldemValues = jQuery('#logHoldemsValues');
 
 var saloonButton = jQuery('#createSaloon');
 var createSistemUser = jQuery('#createUser');
@@ -63,4 +64,9 @@ logChairsButton.on('click', function () {
 
 logHoldems.on('click', function() {
   socket.emit('logHoldems');
+});
+
+
+logHoldemValues.on('click', function() {
+  socket.emit('logHoldemValues');
 });

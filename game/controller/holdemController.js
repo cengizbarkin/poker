@@ -26,7 +26,7 @@ function InitialiseSystem () {
 
 function CreateHoldem (bigBlindAmount, smallBlindAmount, table) {
   return new Promise((resolve, reject) => {
-    var newHoldem = new Holdem({holdemNumber: terminal.holdemNumber, table: table, bigBlindAmount: bigBlindAmount, smallBlindAmount: smallBlindAmount, minBetAmount: bigBlindAmount * 2, currentBetAmount: bigBlindAmount, turnCountdown: 1600});
+    var newHoldem = new Holdem({holdemNumber: terminal.holdemNumber, table: table, bigBlindAmount: bigBlindAmount, smallBlindAmount: smallBlindAmount, currentBetAmount: bigBlindAmount, betIncrease: bigBlindAmount, turnCountdown: 1600});
     var newHoldemPot = new HoldemPot({potNumber: 1, holdem: newHoldem, value: 0, potLimit: bigBlindAmount});
     newHoldem.holdemPots.push(newHoldemPot);
     newHoldem.save().then((holdem) => {
@@ -438,13 +438,12 @@ function PlayerResponded(moveType, value, tableId, playerId, holdemNsp, holdemId
             var respondedPlayer = players.find(pl => pl._id.toString() == playerId);
               if(respondedPlayer._id.toString() == playerId) {
                 if(responds[tableId] != null) {
-                  CreateHoldemMove(moveType, value, tableId, playerId, holdemNsp, holdem._id).then((player) => {
+                  CreateHoldemMove(moveType, value, tableId, playerId, holdem._id).then((player) => {
                     responds[tableId].stop();
                     delete responds[tableId];
                     ChangeTurn(holdemNsp, holdemId).then((holdem) => {
                       MaxBetAmountsForPlayers(table._id).then((holdem) => {
                         //
-
                       });
                     });
                   });
@@ -457,14 +456,13 @@ function PlayerResponded(moveType, value, tableId, playerId, holdemNsp, holdemId
             } else {
             console.log('Game is not started yet');
           }
-
         });
       });
     });
   });
 }
 
-function CreateHoldemMove(moveType, value, tableId, playerId, holdemNsp, holdemId) {
+function CreateHoldemMove(moveType, value, tableId, playerId, holdemId) {
   return new Promise((resolve, reject) => {
     Holdem.findById(holdemId).then((holdem) => {
       HoldemPot.findOne({holdem: holdem, potIsClosed: false}).then((holdemPot) => {
@@ -482,13 +480,11 @@ function CreateHoldemMove(moveType, value, tableId, playerId, holdemNsp, holdemI
           if(value != 0) {
             var balanceMove = new BalanceMove({value: -value, type: 'holdemMove', moveType: moveType, holdemMove: holdemMove, player: respondedPlayer, holdem: holdem, explanation: `${respondedPlayer.name} isimli oyuncu ${holdem.holdemNumber} numaralı oyunda ${moveType} diyerek bakiyesini ${value} birim değiştirdi`});
             balanceMove.save();
-            if(moveType == 'allIn') {
-              console.log('All-in dedi');
-            } else {
+
               ChangePlayerBalanceAndHoldemAmount(respondedPlayer, balanceMove, holdem).then((holdemFromFunc) => {
                 //
               });
-            }
+
 
           } else {
             //Bet'ten gelen Value 0 ise
@@ -499,12 +495,15 @@ function CreateHoldemMove(moveType, value, tableId, playerId, holdemNsp, holdemI
             }
           }
           holdem.holdemMove.push(holdemMove);
-          if(holdem.isFirstMoveMaked == false) {
-            holdem.isFirstMoveMaked = true;
-          }
-          holdem.respondedPlayer = respondedPlayer;
-          holdem.respondedChair = respondedPlayer.chair
 
+          if(moveType != 'bigBlind' && moveType != 'smallBlind') {
+            if(holdem.isFirstMoveMaked == false) {
+              holdem.isFirstMoveMaked = true;
+            }
+            holdem.respondedPlayer = respondedPlayer;
+            holdem.respondedChair = respondedPlayer.chair
+
+          }
           holdem.save().then((holdem) => {
             holdemPot.save().then((holdemPot) => {
               holdemMove.save().then((holdemMove) => {
@@ -520,21 +519,70 @@ function CreateHoldemMove(moveType, value, tableId, playerId, holdemNsp, holdemI
   });
 }
 
-function ChangePlayerBalanceAndHoldemAmount(player, balanceMove, holdem) {
+function TakeBigBlindAndSmallBlind(holdemId) {
   return new Promise((resolve, reject) => {
-    var value = (-1 * balanceMove.value);
-    player.inGameBalance += balanceMove.value;
-    player.totalBetAmount += value;
-    player.lastBetAmount = value;
-    player.lastMoveType = balanceMove.moveType;
-    holdem.totalBetAmount += value;
-    if(holdem.currentBetAmount < value) {
-      holdem.currentBetAmount = value;
-      holdem.minBetAmount = value * 2;
-    }
-    player.save().then((player) => {
-      holdem.save().then((holdem) => {
-        resolve(holdem);
+    var BBPlayer;
+    var SBPlayer;
+    Holdem.findById(holdemId).then((holdem) => {
+      Player.find({holdem: holdem}).then((players) => {
+        BBPlayer = players.find(pl => pl.chair.toString() == holdem.bigBlind.toString());
+        SBPlayer = players.find(pl => pl.chair.toString() == holdem.smallBlind.toString());
+        CreateHoldemMove('bigBlind', holdem.bigBlindAmount, holdem.table, BBPlayer._id, holdem._id).then((player) => {
+          CreateHoldemMove('smallBlind', holdem.smallBlindAmount, holdem.table, SBPlayer._id, holdem._id).then((otherPlayer) => {
+            BBPlayer.save().then((bbplayer) => {
+              SBPlayer.save().then((sbplayer) => {
+                resolve(holdem);
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+}
+
+function ChangePlayerBalanceAndHoldemAmount(player, balanceMove, holdemToCall) {
+  return new Promise((resolve, reject) => {
+    Holdem.findById(holdemToCall._id).then((holdem) => {
+      HoldemPot.findOne({holdem: holdem, potIsClosed: false}).then((holdemPot) => {
+        var value = (-1 * balanceMove.value);
+        player.inGameBalance += balanceMove.value;
+        player.totalBetAmount += value;
+        player.lastBetAmount = value;
+        player.lastMoveType = balanceMove.moveType;
+        holdem.totalBetAmount += value;
+        //Kullanıcının bahsi ne kadar artırabileceği
+        if(holdem.currentBetAmount < player.totalBetAmount) {
+          holdem.betIncrease = (player.totalBetAmount - holdem.currentBetAmount);
+          holdem.currentBetAmount = player.totalBetAmount;
+        }
+        var PlayerObjectToPot = {player: player, amount: player.totalBetAmount};
+        var playerInThePot = holdemPot.playersInThePot.find(obj => obj.player.toString() == player._id.toString());
+
+        if(playerInThePot) {
+          playerInThePot.amount = player.totalBetAmount;
+          playerInThePot.save();
+        } else {
+          holdemPot.playersInThePot.push(PlayerObjectToPot);
+        }
+
+        //Gelen her value'yu holdemPot'a ekliyoruz burada
+        holdemPot.value += value;
+
+        //
+        // if(moveType == 'allIn') {
+        //   console.log('All-in dedi');
+        // } else {
+        //
+        // }
+
+        player.save().then((player) => {
+          holdem.save().then((holdem) => {
+            holdemPot.save().then((holdemPotSaved) => {
+              resolve(holdem);
+            });
+          });
+        });
       });
     });
   });
@@ -607,6 +655,18 @@ function LogHoldems () {
   });
 }
 
+function LogHoldemValues () {
+  Holdem.findOne({isStarted: true}).then((holdem) => {
+    if(holdem) {
+      console.log('Oyuncunun artırabileceği minumum miktar: ' + holdem.betIncrease);
+      console.log('Geçerli olan Bet miktarı: ' + holdem.currentBetAmount);
+      console.log('Oyunculardan alınan toplam miktar: ' + holdem.totalBetAmount);
+    } else {
+      console.log('Oyun bulunamadı');
+    }
+  });
+}
+
 function Starter(t, table, holdemNsp, socket) {
     var timerObj = setInterval(() => {
       t--;
@@ -629,34 +689,6 @@ function Starter(t, table, holdemNsp, socket) {
     }
 }
 
-function TakeBigBlindAndSmallBlind(holdemId) {
-  return new Promise((resolve, reject) => {
-    var BBPlayer;
-    var SBPlayer;
-    Holdem.findById(holdemId).then((holdem) => {
-      Player.find({holdem: holdem}).then((players) => {
-        BBPlayer = players.find(pl => pl.chair.toString() == holdem.bigBlind.toString());
-        SBPlayer = players.find(pl => pl.chair.toString() == holdem.smallBlind.toString());
-        BBPlayer.inGameBalance -= holdem.bigBlindAmount;
-        BBPlayer.totalBetAmount += holdem.bigBlindAmount;
-        BBPlayer.lastBetAmount = holdem.bigBlindAmount;
-        BBPlayer.lastMoveType = 'Big Blind';
-        SBPlayer.inGameBalance -= holdem.smallBlindAmount;
-        SBPlayer.totalBetAmount += holdem.smallBlindAmount;
-        SBPlayer.lastBetAmount = holdem.smallBlindAmount;
-        SBPlayer.lastMoveType = 'Small Blind';
-
-        BBPlayer.save().then((bbplayer) => {
-          SBPlayer.save().then((sbplayer) => {
-            resolve(holdem);
-          });
-        });
-      });
-    });
-  });
-}
-
-
 //AddPlayerToStartedGame = () => {}
 InitialiseSystem();
 
@@ -664,5 +696,6 @@ module.exports = {
   AddPlayerToHoldem,
   StartHoldem,
   LogHoldems,
+  LogHoldemValues,
   PlayerResponded
 }

@@ -102,15 +102,16 @@ let HoldemSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  //Oyun türüne göre her oyuncunun koyması gereken Minimum Bet amount'u. (Bir önceki limitin 2 katı ya da BB kadar fazlası)
-  minBetAmount: {
-    type: Number,
-    default: 0
-  },
   totalBetAmount: {
     type: Number,
     default: 0
+  },
+  //Oyuncunun artırmak için koyabileceği minimum miktar
+  betIncrease: {
+    type: Number,
+    default: 0
   }
+
 });
 
 let Holdem = mongoose.model('holdem', HoldemSchema);
